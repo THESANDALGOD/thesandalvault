@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
-  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, updateTrackPrivacy,
+  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, updateTrackPrivacy, reorderTracks,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage,
   type Track, type LocationStat, type Play, type Message,
 } from "@/lib/supabase";
@@ -102,6 +102,16 @@ export default function AdminPage() {
 
   const handleTogglePrivacy = async (track: Track) => {
     try { await updateTrackPrivacy(track.id, !track.is_private); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
+  };
+
+  const moveTrack = async (index: number, dir: number) => {
+    const newIndex = index + dir;
+    if (newIndex < 0 || newIndex >= tracks.length) return;
+    const reordered = [...tracks];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(newIndex, 0, moved);
+    setTracks(reordered);
+    try { await reorderTracks(reordered.map((t) => t.id)); } catch (err: any) { setMsg({ text: err.message, type: "err" }); loadTracks(); }
   };
 
   const handleSaveEdit = async (trackId: string) => {
@@ -222,11 +232,21 @@ export default function AdminPage() {
                 <p className="text-sm text-dim text-center py-8">No tracks uploaded yet</p>
               ) : (
                 <div className="space-y-2">
-                  {tracks.map((track) => {
+                  {tracks.map((track, idx) => {
                     const isEditing = editingId === track.id;
                     return (
                       <div key={track.id} className="bg-bg-1 rounded-lg overflow-hidden group hover:bg-bg-2 transition-colors">
                         <div className="flex items-center justify-between px-3 py-3">
+                          <div className="flex flex-col mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => moveTrack(idx, -1)} disabled={idx === 0}
+                              className="text-dim hover:text-accent disabled:text-dim/20 transition-colors p-0.5">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 15l-6-6-6 6" /></svg>
+                            </button>
+                            <button onClick={() => moveTrack(idx, 1)} disabled={idx === tracks.length - 1}
+                              className="text-dim hover:text-accent disabled:text-dim/20 transition-colors p-0.5">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6" /></svg>
+                            </button>
+                          </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{track.title}</p>
                             <p className="text-[10px] text-muted font-mono">

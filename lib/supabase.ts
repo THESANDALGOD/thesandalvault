@@ -16,6 +16,7 @@ export interface Track {
   video_path: string | null;
   lyrics: string | null;
   is_private: boolean;
+  sort_order: number;
   created_at: string;
   play_count?: number;
 }
@@ -74,12 +75,12 @@ export async function getLogoUrl(filePath: string): Promise<string> {
 // ─── Tracks ───
 
 export async function getTracks(): Promise<Track[]> {
-  const { data, error } = await supabase.from("tracks").select("*").order("title", { ascending: true }).order("version", { ascending: false });
+  const { data, error } = await supabase.from("tracks").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: true });
   if (error) throw error; return data ?? [];
 }
 
 export async function getPublicTracks(): Promise<Track[]> {
-  const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).order("title", { ascending: true }).order("version", { ascending: false });
+  const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
   if (error) throw error; return data ?? [];
 }
 
@@ -125,9 +126,11 @@ export async function uploadFile(
   }
 
   const duration = await getAudioDuration(file);
+  const { data: maxRow } = await supabase.from("tracks").select("sort_order").order("sort_order", { ascending: false }).limit(1).single();
+  const nextOrder = (maxRow?.sort_order ?? -1) + 1;
   const { data, error: insertErr } = await supabase.from("tracks").insert({
     title, version, file_path: filePath, duration,
-    artwork_path, video_path, lyrics: lyrics || null, is_private: isPrivate || false,
+    artwork_path, video_path, lyrics: lyrics || null, is_private: isPrivate || false, sort_order: nextOrder,
   }).select().single();
   if (insertErr) throw insertErr;
   return data;
@@ -164,6 +167,13 @@ export async function updateTrackMedia(
 export async function updateTrackPrivacy(trackId: string, isPrivate: boolean): Promise<void> {
   const { error } = await supabase.from("tracks").update({ is_private: isPrivate }).eq("id", trackId);
   if (error) throw error;
+}
+
+export async function reorderTracks(orderedIds: string[]): Promise<void> {
+  for (let i = 0; i < orderedIds.length; i++) {
+    const { error } = await supabase.from("tracks").update({ sort_order: i }).eq("id", orderedIds[i]);
+    if (error) throw error;
+  }
 }
 
 export async function deleteTrackFull(track: Track) {

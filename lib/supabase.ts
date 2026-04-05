@@ -210,9 +210,9 @@ export async function updateTrackMedia(
 }
 
 export async function deleteTrackMedia(trackId: string, field: "artwork_path" | "video_path"): Promise<void> {
-  const { data: track } = await supabase.from("tracks").select(field).eq("id", trackId).single();
-  if (track && track[field]) {
-    await supabase.storage.from("tracks").remove([track[field] as string]);
+  const { data: track } = await supabase.from("tracks").select("*").eq("id", trackId).single();
+  if (track && (track as any)[field]) {
+    await supabase.storage.from("tracks").remove([(track as any)[field]]);
   }
   const { error } = await supabase.from("tracks").update({ [field]: null }).eq("id", trackId);
   if (error) throw error;

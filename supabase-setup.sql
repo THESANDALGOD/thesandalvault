@@ -6,6 +6,7 @@
 alter table public.tracks add column if not exists artwork_path text;
 alter table public.tracks add column if not exists video_path text;
 alter table public.tracks add column if not exists lyrics text;
+alter table public.tracks add column if not exists is_private boolean default false;
 
 -- Anonymous messages
 create table if not exists public.messages (

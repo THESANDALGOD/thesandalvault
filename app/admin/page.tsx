@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
-  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia,
+  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, updateTrackPrivacy,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage,
   type Track, type LocationStat, type Play, type Message,
 } from "@/lib/supabase";
@@ -20,6 +20,7 @@ export default function AdminPage() {
   const [artworkFile, setArtworkFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [lyrics, setLyrics] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -77,9 +78,9 @@ export default function AdminPage() {
     if (!file || !title.trim()) { setMsg({ text: "Need a title and a file", type: "err" }); return; }
     setUploading(true); setMsg(null);
     try {
-      await uploadFile(file, title.trim(), version, artworkFile, videoFile, lyrics || null);
+      await uploadFile(file, title.trim(), version, artworkFile, videoFile, lyrics || null, isPrivate);
       setMsg({ text: `Uploaded "${title.trim()} (${version})"`, type: "ok" });
-      setTitle(""); setVersion("v1"); setFile(null); setArtworkFile(null); setVideoFile(null); setLyrics("");
+      setTitle(""); setVersion("v1"); setFile(null); setArtworkFile(null); setVideoFile(null); setLyrics(""); setIsPrivate(false);
       if (fileRef.current) fileRef.current.value = "";
       if (artRef.current) artRef.current.value = "";
       if (vidRef.current) vidRef.current.value = "";
@@ -98,6 +99,10 @@ export default function AdminPage() {
   const copyLink = (trackId: string) => { navigator.clipboard.writeText(`${window.location.origin}/track/${trackId}`).then(() => { setCopiedId(trackId); setTimeout(() => setCopiedId(null), 2000); }); };
 
   const startEdit = (track: Track) => { setEditingId(track.id); setEditLyrics(track.lyrics || ""); setEditArtwork(null); setEditVideo(null); };
+
+  const handleTogglePrivacy = async (track: Track) => {
+    try { await updateTrackPrivacy(track.id, !track.is_private); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
+  };
 
   const handleSaveEdit = async (trackId: string) => {
     setSavingEdit(true);
@@ -185,6 +190,18 @@ export default function AdminPage() {
                   <textarea value={lyrics} onChange={(e) => setLyrics(e.target.value)} placeholder="Write or paste lyrics..."
                     rows={4} className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted resize-y font-mono" />
                 </div>
+                <div>
+                  <button type="button" onClick={() => setIsPrivate(!isPrivate)}
+                    className="flex items-center gap-3 w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg transition-colors hover:bg-bg-3">
+                    <div className={`w-8 h-[18px] rounded-full transition-colors relative ${isPrivate ? "bg-white" : "bg-bg-4"}`}>
+                      <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all ${isPrivate ? "right-[2px] bg-black" : "left-[2px] bg-dim"}`} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm text-accent">{isPrivate ? "Private" : "Public"}</p>
+                      <p className="text-[9px] text-dim font-mono">{isPrivate ? "only visible in admin" : "visible to everyone"}</p>
+                    </div>
+                  </button>
+                </div>
               </div>
               <button type="submit" disabled={uploading}
                 className="w-full py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all">
@@ -215,9 +232,19 @@ export default function AdminPage() {
                             <p className="text-[10px] text-muted font-mono">
                               {track.version} · {track.play_count || 0} play{(track.play_count || 0) !== 1 ? "s" : ""}
                               {track.artwork_path && " · art"}{track.video_path && " · vid"}{track.lyrics && " · lyrics"}
+                              {track.is_private && <span className="text-yellow-500/60"> · private</span>}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-3">
+                            <button onClick={() => handleTogglePrivacy(track)}
+                              className={`transition-colors ${track.is_private ? "text-yellow-500/60" : "text-dim hover:text-accent opacity-0 group-hover:opacity-100"}`}
+                              title={track.is_private ? "Make public" : "Make private"}>
+                              {track.is_private ? (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                              ) : (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 7-4.7" /></svg>
+                              )}
+                            </button>
                             <button onClick={() => isEditing ? setEditingId(null) : startEdit(track)}
                               className={`transition-colors ${isEditing ? "text-accent" : "text-dim hover:text-accent opacity-0 group-hover:opacity-100"}`}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>

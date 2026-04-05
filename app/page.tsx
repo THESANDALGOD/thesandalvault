@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { getTracks, getSettings, getLogoUrl, sendMessage, type Track, type SiteSettings } from "@/lib/supabase";
+import { getPublicTracks, getSettings, getLogoUrl, sendMessage, type Track, type SiteSettings } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
 
 function fmt(s: number | null): string {
@@ -34,7 +34,7 @@ export default function PlayerPage() {
   const { tracks, setTracks, current, isPlaying, playTrack, togglePlay } = usePlayer();
 
   useEffect(() => {
-    Promise.all([getSettings(), getTracks()])
+    Promise.all([getSettings(), getPublicTracks()])
       .then(async ([s, t]) => {
         setSettings(s); setTracks(t);
         if (s.logo_path) { try { setLogoSrc(await getLogoUrl(s.logo_path)); } catch {} }

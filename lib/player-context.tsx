@@ -18,6 +18,7 @@ interface PlayerState {
   artworkUrl: string | null;
   videoUrl: string | null;
   tracks: Track[];
+  audioRef: React.RefObject<HTMLAudioElement | null>;
   setTracks: (t: Track[]) => void;
   playTrack: (track: Track) => void;
   togglePlay: () => void;
@@ -64,30 +65,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => { repeatRef.current = repeatMode; }, [repeatMode]);
   useEffect(() => { shuffleRef.current = shuffle; }, [shuffle]);
 
-  // Create audio element once
+  // Create audio element once — no progress tracking here, that's in PersistentPlayer via rAF
   useEffect(() => {
     const audio = new Audio();
     audioRef.current = audio;
 
-    // rAF-based progress tracking for smooth 60fps scrubber
-    let rafId: number;
-    let lastStateUpdate = 0;
-    const tick = () => {
-      const now = performance.now();
-      // Update state at ~15fps for time display (numbers don't need 60fps)
-      if (now - lastStateUpdate > 66) {
-        setCurrentTime(audio.currentTime);
-        setDuration(audio.duration || 0);
-        setProgress(audio.duration ? (audio.currentTime / audio.duration) * 100 : 0);
-        lastStateUpdate = now;
-      }
-      rafId = requestAnimationFrame(tick);
-    };
-
-    const onPlay = () => { setIsPlaying(true); rafId = requestAnimationFrame(tick); };
-    const onPause = () => { setIsPlaying(false); cancelAnimationFrame(rafId); };
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
     const onEnd = () => {
-      cancelAnimationFrame(rafId);
       if (repeatRef.current === "one") { audio.currentTime = 0; audio.play(); return; }
       const t = tracksRef.current; const c = currentRef.current;
       if (!c || !t.length) return;
@@ -104,7 +89,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     audio.addEventListener("play", onPlay);
     audio.addEventListener("pause", onPause);
     audio.addEventListener("ended", onEnd);
-    return () => { cancelAnimationFrame(rafId); audio.removeEventListener("play", onPlay); audio.removeEventListener("pause", onPause); audio.removeEventListener("ended", onEnd); audio.pause(); };
+    return () => { audio.removeEventListener("play", onPlay); audio.removeEventListener("pause", onPause); audio.removeEventListener("ended", onEnd); audio.pause(); };
   }, []);
 
   // Load artwork/video URLs when track changes
@@ -167,7 +152,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   return (
     <PlayerContext.Provider value={{
       current, isPlaying, progress, currentTime, duration, volume, repeatMode, shuffle, expanded,
-      artworkUrl, videoUrl, tracks, setTracks, playTrack, togglePlay, skip, seek, setVolume,
+      artworkUrl, videoUrl, tracks, audioRef, setTracks, playTrack, togglePlay, skip, seek, setVolume,
       cycleRepeat, toggleShuffle, setExpanded,
     }}>
       {children}

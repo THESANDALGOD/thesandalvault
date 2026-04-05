@@ -29,8 +29,12 @@ input[type="range"] {
   background: #333;
   outline: none;
   cursor: pointer;
-  transition: background 0.08s linear;
 }
+
+/* Hide scrollbar on expanded player but keep scroll */
+.overscroll-contain { overscroll-behavior: contain; }
+.overscroll-contain::-webkit-scrollbar { display: none; }
+.overscroll-contain { -ms-overflow-style: none; scrollbar-width: none; }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 12px;

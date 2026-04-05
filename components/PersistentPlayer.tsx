@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { usePlayer } from "@/lib/player-context";
 
-function fmt(s: number | null): string {
+function fmt(s: number): string {
   if (!s || s <= 0) return "0:00";
   return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 }
@@ -27,23 +27,135 @@ const ShuffleIcon = ({ on }: { on: boolean }) => (
   </svg>
 );
 
+// ─── Scrubber: pure DOM, 60fps, touch-friendly ───
+function Scrubber({ audioRef }: { audioRef: React.RefObject<HTMLAudioElement | null> }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const fillRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const timeLeftRef = useRef<HTMLSpanElement>(null);
+  const timeRightRef = useRef<HTMLSpanElement>(null);
+  const rafRef = useRef<number>(0);
+  const draggingRef = useRef(false);
+  const wasPlayingRef = useRef(false);
+
+  const tick = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && !draggingRef.current) {
+      const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+      if (fillRef.current) fillRef.current.style.width = `${pct}%`;
+      if (thumbRef.current) thumbRef.current.style.left = `${pct}%`;
+      if (timeLeftRef.current) timeLeftRef.current.textContent = fmt(audio.currentTime);
+      if (timeRightRef.current) timeRightRef.current.textContent = fmt(audio.duration || 0);
+    }
+    rafRef.current = requestAnimationFrame(tick);
+  }, [audioRef]);
+
+  useEffect(() => {
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [tick]);
+
+  const getPct = (clientX: number) => {
+    const track = trackRef.current;
+    if (!track) return 0;
+    const rect = track.getBoundingClientRect();
+    return Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+  };
+
+  const applyPct = (pct: number) => {
+    if (fillRef.current) fillRef.current.style.width = `${pct}%`;
+    if (thumbRef.current) thumbRef.current.style.left = `${pct}%`;
+    const audio = audioRef.current;
+    if (audio && audio.duration && timeLeftRef.current) {
+      timeLeftRef.current.textContent = fmt((pct / 100) * audio.duration);
+    }
+  };
+
+  const seekTo = (pct: number) => {
+    const audio = audioRef.current;
+    if (audio && audio.duration) audio.currentTime = (pct / 100) * audio.duration;
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    wasPlayingRef.current = !audioRef.current?.paused;
+    audioRef.current?.pause();
+    applyPct(getPct(e.clientX));
+    const onMove = (ev: MouseEvent) => applyPct(getPct(ev.clientX));
+    const onUp = (ev: MouseEvent) => {
+      draggingRef.current = false;
+      seekTo(getPct(ev.clientX));
+      if (wasPlayingRef.current) audioRef.current?.play();
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    draggingRef.current = true;
+    wasPlayingRef.current = !audioRef.current?.paused;
+    audioRef.current?.pause();
+    applyPct(getPct(e.touches[0].clientX));
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!draggingRef.current) return;
+    e.preventDefault();
+    applyPct(getPct(e.touches[0].clientX));
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    seekTo(getPct(e.changedTouches[0].clientX));
+    if (wasPlayingRef.current) audioRef.current?.play();
+  };
+
+  return (
+    <div className="flex items-center gap-3">
+      <span ref={timeLeftRef} className="text-[10px] text-dim font-mono w-8 text-right select-none">0:00</span>
+      <div
+        ref={trackRef}
+        className="flex-1 relative cursor-pointer select-none"
+        style={{ height: 40, display: "flex", alignItems: "center", touchAction: "none" }}
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className="absolute left-0 right-0 h-1 rounded-full bg-[#333]" style={{ top: "50%", transform: "translateY(-50%)" }}>
+          <div ref={fillRef} className="absolute left-0 top-0 h-full rounded-full bg-white" style={{ width: "0%", willChange: "width" }} />
+        </div>
+        <div ref={thumbRef} className="absolute top-1/2 w-4 h-4 rounded-full bg-white shadow-md"
+          style={{ left: "0%", transform: "translate(-50%, -50%)", willChange: "left", opacity: 0, transition: "opacity 0.15s" }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+          onMouseLeave={(e) => { if (!draggingRef.current) e.currentTarget.style.opacity = "0"; }}
+        />
+      </div>
+      <span ref={timeRightRef} className="text-[10px] text-dim font-mono w-8 select-none">0:00</span>
+    </div>
+  );
+}
+
 export default function PersistentPlayer() {
   const {
-    current, isPlaying, progress, currentTime, duration, volume, repeatMode, shuffle, expanded,
-    artworkUrl, videoUrl, togglePlay, skip, seek, setVolume, cycleRepeat, toggleShuffle, setExpanded,
+    current, isPlaying, volume, repeatMode, shuffle, expanded,
+    artworkUrl, videoUrl, audioRef, togglePlay, skip, setVolume, cycleRepeat, toggleShuffle, setExpanded,
   } = usePlayer();
 
   const [showLyrics, setShowLyrics] = useState(false);
 
   if (!current) return null;
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => seek(parseFloat(e.target.value));
   const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => setVolume(parseFloat(e.target.value));
 
   // ─── FULL-SCREEN PLAYER ───
   if (expanded) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#000" }}>
+      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#000", height: "100dvh", overflow: "hidden" }}>
         {videoUrl ? (
           <video key={videoUrl} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: showLyrics ? 0.1 : 0.3 }}>
             <source src={videoUrl} type="video/mp4" />
@@ -55,38 +167,44 @@ export default function PersistentPlayer() {
         )}
         <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%)" }} />
 
-        <div className="relative z-10 flex flex-col h-full">
-          <div className="flex items-center justify-between px-6 py-4">
-            <button onClick={() => setExpanded(false)} className="text-muted hover:text-white transition-colors">
+        <div className="relative z-10 flex flex-col h-full overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 flex-shrink-0">
+            <button onClick={() => setExpanded(false)} className="text-muted hover:text-white transition-colors p-1">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
             </button>
             <span className="text-[9px] font-mono text-dim uppercase tracking-widest">Now Playing</span>
-            <div className="w-5" />
+            <div className="w-7" />
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-center px-8 overflow-hidden">
+          {/* Center content — no page scroll */}
+          <div className="flex-1 flex flex-col items-center justify-center px-8 overflow-hidden min-h-0">
             {showLyrics && current.lyrics ? (
-              /* ─── LYRICS VIEW ─── */
-              <div className="w-full max-w-md flex flex-col items-center h-full justify-center">
-                <div className="flex flex-col items-center gap-0.5 mb-4">
+              <div className="w-full max-w-md flex flex-col items-center h-full justify-center min-h-0">
+                <div className="flex flex-col items-center gap-0.5 mb-3 flex-shrink-0">
                   <h3 className="text-sm font-semibold">{current.title}</h3>
                   <span className="text-[11px] text-muted/60">THESANDALGOD</span>
                 </div>
-                <div className="flex-1 overflow-y-auto w-full max-h-[50vh] px-2 mb-4" style={{ maskImage: "linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)" }}>
-                  <p className="text-sm text-center text-accent/80 leading-[2] whitespace-pre-wrap font-mono py-4">{current.lyrics}</p>
+                {/* Only this scrolls */}
+                <div className="flex-1 overflow-y-auto w-full min-h-0 px-2 overscroll-contain"
+                  style={{
+                    WebkitOverflowScrolling: "touch",
+                    maskImage: "linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%)",
+                    WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%)",
+                  }}>
+                  <p className="text-sm text-center text-accent/80 leading-[2] whitespace-pre-wrap font-mono py-6">{current.lyrics}</p>
                 </div>
                 <button onClick={() => setShowLyrics(false)}
-                  className="text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest">
+                  className="text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest mt-3 flex-shrink-0">
                   hide lyrics
                 </button>
               </div>
             ) : (
-              /* ─── ARTWORK VIEW ─── */
               <>
                 {artworkUrl ? (
-                  <img src={artworkUrl} alt="" className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl object-cover shadow-2xl mb-8" />
+                  <img src={artworkUrl} alt="" className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl object-cover shadow-2xl mb-8 flex-shrink-0" />
                 ) : (
-                  <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl bg-bg-2 flex items-center justify-center mb-8" style={{ border: "1px solid #222" }}>
+                  <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl bg-bg-2 flex items-center justify-center mb-8 flex-shrink-0" style={{ border: "1px solid #222" }}>
                     <span className="text-4xl font-bold text-dim">{current.title.charAt(0)}</span>
                   </div>
                 )}
@@ -102,12 +220,10 @@ export default function PersistentPlayer() {
             )}
           </div>
 
-          <div className="px-6 pb-8" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }}>
-            <div className="flex items-center gap-3 mb-6 max-w-md mx-auto">
-              <span className="text-[10px] text-dim font-mono w-8 text-right">{fmt(currentTime)}</span>
-              <input type="range" min={0} max={100} step={0.1} value={progress} onChange={handleSeek} className="flex-1"
-                style={{ background: `linear-gradient(to right, #e2e2e2 ${progress}%, #333 ${progress}%)` }} />
-              <span className="text-[10px] text-dim font-mono w-8">{fmt(duration)}</span>
+          {/* Controls */}
+          <div className="px-6 pb-6 flex-shrink-0" style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom, 0px))" }}>
+            <div className="max-w-md mx-auto mb-4">
+              <Scrubber audioRef={audioRef} />
             </div>
             <div className="flex items-center justify-center gap-8">
               <button onClick={toggleShuffle} className="transition-colors p-2"><ShuffleIcon on={shuffle} /></button>
@@ -132,11 +248,8 @@ export default function PersistentPlayer() {
   return (
     <div className="fixed bottom-0 left-0 w-full z-40 border-t border-bg-3 bg-bg-1/95 backdrop-blur-xl px-4 py-3" style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}>
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-[10px] text-dim font-mono w-8 text-right">{fmt(currentTime)}</span>
-          <input type="range" min={0} max={100} step={0.1} value={progress} onChange={handleSeek} className="flex-1"
-            style={{ background: `linear-gradient(to right, #e2e2e2 ${progress}%, #333 ${progress}%)` }} />
-          <span className="text-[10px] text-dim font-mono w-8">{fmt(duration)}</span>
+        <div className="mb-2">
+          <Scrubber audioRef={audioRef} />
         </div>
         <div className="flex items-center justify-between">
           <button onClick={() => setExpanded(true)} className="flex-1 min-w-0 text-left">

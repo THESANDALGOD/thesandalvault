@@ -125,38 +125,6 @@ export async function toggleSpotlight(trackId: string, isSpotlight: boolean, spo
   if (error) throw error;
 }
 
-// ─── Spotlight Settings ───
-
-export async function getSpotlightSettings(): Promise<SpotlightSettings> {
-  const { data, error } = await supabase.from("spotlight_settings").select("*").limit(1).single();
-  if (error || !data) return { id: "", name: "Spotlight", description: null, artwork_path: null };
-  return data;
-}
-
-export async function updateSpotlightSettings(name: string, description: string | null): Promise<void> {
-  const { data: existing } = await supabase.from("spotlight_settings").select("id").limit(1).single();
-  if (existing) {
-    const { error } = await supabase.from("spotlight_settings").update({ name, description }).eq("id", existing.id);
-    if (error) throw error;
-  } else {
-    const { error } = await supabase.from("spotlight_settings").insert({ name, description });
-    if (error) throw error;
-  }
-}
-
-export async function uploadSpotlightArtwork(file: File): Promise<string> {
-  const filePath = `spotlight-${Date.now()}.${file.name.split(".").pop() || "jpg"}`;
-  const { error } = await supabase.storage.from("tracks").upload(filePath, file, { contentType: file.type, upsert: true });
-  if (error) throw error;
-  const { data: existing } = await supabase.from("spotlight_settings").select("id").limit(1).single();
-  if (existing) {
-    await supabase.from("spotlight_settings").update({ artwork_path: filePath }).eq("id", existing.id);
-  } else {
-    await supabase.from("spotlight_settings").insert({ name: "Spotlight", artwork_path: filePath });
-  }
-  return filePath;
-}
-
 export async function getTrackById(id: string): Promise<Track | null> {
   const { data, error } = await supabase.from("tracks").select("*").eq("id", id).single();
   if (error) return null; return data;

@@ -68,9 +68,9 @@ export default function PersistentPlayer() {
             {showLyrics && current.lyrics ? (
               /* ─── LYRICS VIEW ─── */
               <div className="w-full max-w-md flex flex-col items-center h-full justify-center">
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex flex-col items-center gap-0.5 mb-4">
                   <h3 className="text-sm font-semibold">{current.title}</h3>
-                  <span className="text-[10px] text-muted font-mono">{current.version}</span>
+                  <span className="text-[11px] text-muted/60">THESANDALGOD</span>
                 </div>
                 <div className="flex-1 overflow-y-auto w-full max-h-[50vh] px-2 mb-4" style={{ maskImage: "linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)" }}>
                   <p className="text-sm text-center text-accent/80 leading-[2] whitespace-pre-wrap font-mono py-4">{current.lyrics}</p>
@@ -91,7 +91,7 @@ export default function PersistentPlayer() {
                   </div>
                 )}
                 <h2 className="text-xl sm:text-2xl font-semibold text-center mb-1">{current.title}</h2>
-                <p className="text-sm text-muted font-mono mb-4">{current.version}</p>
+                <p className="text-sm text-muted/60 mb-4">THESANDALGOD</p>
                 {current.lyrics && (
                   <button onClick={() => setShowLyrics(true)}
                     className="text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest mb-4">
@@ -141,7 +141,7 @@ export default function PersistentPlayer() {
         <div className="flex items-center justify-between">
           <button onClick={() => setExpanded(true)} className="flex-1 min-w-0 text-left">
             <p className="text-sm font-semibold truncate">{current.title}</p>
-            <p className="text-[10px] text-muted font-mono">{current.version}</p>
+            <p className="text-[10px] text-muted/60">THESANDALGOD</p>
           </button>
           <div className="flex items-center gap-4">
             <button onClick={() => skip(-1)} className="text-muted hover:text-white transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" /></svg></button>

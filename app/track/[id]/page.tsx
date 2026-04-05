@@ -73,7 +73,8 @@ export default function TrackPage() {
 
       <div className="text-center mb-8">
         <h1 className="text-2xl font-semibold mb-1">{track.title}</h1>
-        <p className="text-sm text-muted font-mono">{track.version} · {fmt(track.duration)}</p>
+        <p className="text-sm text-muted/60 mb-1">THESANDALGOD</p>
+        <p className="text-[10px] text-dim font-mono">{fmt(track.duration)}</p>
       </div>
 
       <button onClick={handlePlay}

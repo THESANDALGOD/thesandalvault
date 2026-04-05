@@ -131,14 +131,14 @@ export default function PlayerPage() {
               <div className="flex items-center justify-center h-48 text-center"><div><p className="text-muted text-sm">No tracks yet</p><Link href="/admin" className="text-dim text-xs font-mono hover:text-accent transition-colors">Upload from /admin →</Link></div></div>
             ) : (
               <div className="space-y-1">
-                <div className="grid grid-cols-[1fr_60px_50px] px-3 py-2 text-[10px] text-dim font-mono uppercase tracking-widest">
-                  <span>Title</span><span className="text-right">Ver</span><span className="text-right">Dur</span>
+                <div className="grid grid-cols-[1fr_50px] px-3 py-2 text-[10px] text-dim font-mono uppercase tracking-widest">
+                  <span>Title</span><span className="text-right">Dur</span>
                 </div>
                 {tracks.map((track, i) => {
                   const isCurrent = current?.id === track.id;
                   return (
                     <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); setExpanded(true); } }}
-                      className={`w-full grid grid-cols-[1fr_60px_50px] items-center px-3 py-3 rounded-lg transition-all duration-200 text-left group fade-up ${isCurrent ? "bg-bg-3 text-white" : "hover:bg-bg-2 text-accent/70 hover:text-accent"}`}
+                      className={`w-full grid grid-cols-[1fr_50px] items-center px-3 py-3 rounded-lg transition-all duration-200 text-left group fade-up ${isCurrent ? "bg-bg-3 text-white" : "hover:bg-bg-2 text-accent/70 hover:text-accent"}`}
                       style={{ animationDelay: `${i * 30}ms` }}>
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-5 flex-shrink-0 flex justify-center">
@@ -146,7 +146,6 @@ export default function PlayerPage() {
                         </div>
                         <span className={`text-sm truncate ${isCurrent ? "font-semibold" : "font-medium"}`}>{track.title}</span>
                       </div>
-                      <span className="text-xs text-muted font-mono text-right">{track.version}</span>
                       <span className="text-xs text-dim font-mono text-right">{fmt(track.duration)}</span>
                     </button>
                   );

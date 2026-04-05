@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePlayer } from "@/lib/player-context";
 
 function fmt(s: number | null): string {
@@ -32,6 +33,8 @@ export default function PersistentPlayer() {
     artworkUrl, videoUrl, togglePlay, skip, seek, setVolume, cycleRepeat, toggleShuffle, setExpanded,
   } = usePlayer();
 
+  const [showLyrics, setShowLyrics] = useState(false);
+
   if (!current) return null;
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => seek(parseFloat(e.target.value));
@@ -42,7 +45,7 @@ export default function PersistentPlayer() {
     return (
       <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#000" }}>
         {videoUrl ? (
-          <video key={videoUrl} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.3 }}>
+          <video key={videoUrl} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: showLyrics ? 0.1 : 0.3 }}>
             <source src={videoUrl} type="video/mp4" />
           </video>
         ) : artworkUrl ? (
@@ -61,20 +64,41 @@ export default function PersistentPlayer() {
             <div className="w-5" />
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-center px-8">
-            {artworkUrl ? (
-              <img src={artworkUrl} alt="" className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl object-cover shadow-2xl mb-8" />
+          <div className="flex-1 flex flex-col items-center justify-center px-8 overflow-hidden">
+            {showLyrics && current.lyrics ? (
+              /* ─── LYRICS VIEW ─── */
+              <div className="w-full max-w-md flex flex-col items-center h-full justify-center">
+                <div className="flex items-center gap-2 mb-4">
+                  <h3 className="text-sm font-semibold">{current.title}</h3>
+                  <span className="text-[10px] text-muted font-mono">{current.version}</span>
+                </div>
+                <div className="flex-1 overflow-y-auto w-full max-h-[50vh] px-2 mb-4" style={{ maskImage: "linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)", WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%)" }}>
+                  <p className="text-sm text-center text-accent/80 leading-[2] whitespace-pre-wrap font-mono py-4">{current.lyrics}</p>
+                </div>
+                <button onClick={() => setShowLyrics(false)}
+                  className="text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest">
+                  hide lyrics
+                </button>
+              </div>
             ) : (
-              <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl bg-bg-2 flex items-center justify-center mb-8" style={{ border: "1px solid #222" }}>
-                <span className="text-4xl font-bold text-dim">{current.title.charAt(0)}</span>
-              </div>
-            )}
-            <h2 className="text-xl sm:text-2xl font-semibold text-center mb-1">{current.title}</h2>
-            <p className="text-sm text-muted font-mono mb-6">{current.version}</p>
-            {current.lyrics && (
-              <div className="max-h-32 overflow-y-auto w-full max-w-md mb-6 px-4">
-                <p className="text-xs text-center text-muted/60 leading-relaxed whitespace-pre-wrap font-mono">{current.lyrics}</p>
-              </div>
+              /* ─── ARTWORK VIEW ─── */
+              <>
+                {artworkUrl ? (
+                  <img src={artworkUrl} alt="" className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl object-cover shadow-2xl mb-8" />
+                ) : (
+                  <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl bg-bg-2 flex items-center justify-center mb-8" style={{ border: "1px solid #222" }}>
+                    <span className="text-4xl font-bold text-dim">{current.title.charAt(0)}</span>
+                  </div>
+                )}
+                <h2 className="text-xl sm:text-2xl font-semibold text-center mb-1">{current.title}</h2>
+                <p className="text-sm text-muted font-mono mb-4">{current.version}</p>
+                {current.lyrics && (
+                  <button onClick={() => setShowLyrics(true)}
+                    className="text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest mb-4">
+                    view lyrics
+                  </button>
+                )}
+              </>
             )}
           </div>
 

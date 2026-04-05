@@ -100,7 +100,7 @@ export default function PlayerPage() {
             {spotlight.length > 0 && (
               <div className="mb-8 rounded-xl overflow-hidden fade-up" style={{ background: "#0a0a0a" }}>
                 {/* Header - clickable to /spotlight */}
-                <Link href="/spotlight" className="flex gap-4 p-4 pb-3 group">
+                <Link href="/spotlight" className="flex gap-4 p-4 group">
                   <div className="flex-shrink-0">
                     {spotlightCover ? (
                       <img src={spotlightCover} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover group-hover:opacity-90 transition-opacity" />
@@ -124,33 +124,6 @@ export default function PlayerPage() {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-dim group-hover:text-muted transition-colors"><path d="M9 18l6-6-6-6" /></svg>
                   </div>
                 </Link>
-
-                {/* Preview tracks */}
-                <div className="px-2 pb-2">
-                  {spotlight.slice(0, 3).map((track, i) => {
-                    const isCurrent = current?.id === track.id;
-                    return (
-                      <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); setExpanded(true); } }}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${isCurrent ? "bg-bg-3" : "hover:bg-bg-2"}`}>
-                        {spotlightArt[track.id] ? (
-                          <img src={spotlightArt[track.id]} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded bg-bg-3 flex items-center justify-center flex-shrink-0">
-                            <span className="text-[10px] font-bold text-dim">{track.title.charAt(0)}</span>
-                          </div>
-                        )}
-                        <span className="text-xs text-dim font-mono w-4 flex-shrink-0">{i + 1}</span>
-                        <span className={`text-sm truncate flex-1 ${isCurrent ? "text-white font-semibold" : "text-accent/70 group-hover:text-accent"}`}>{track.title}</span>
-                      </button>
-                    );
-                  })}
-                  {spotlight.length > 3 && (
-                    <Link href="/spotlight"
-                      className="block w-full py-2 text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest text-center mt-1">
-                      View all {spotlight.length} tracks →
-                    </Link>
-                  )}
-                </div>
               </div>
             )}
 

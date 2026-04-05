@@ -112,7 +112,7 @@ export default function PlayerPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <p className="text-[10px] text-dim font-mono uppercase tracking-widest">{settings.title}</p>
+                    <p className="text-[10px] text-dim font-mono uppercase tracking-widest">THESANDALGOD</p>
                     <p className="text-base font-semibold group-hover:text-white transition-colors">{settings.spotlight_title || "Spotlight"}</p>
                     {settings.spotlight_bio && (
                       <p className="text-[11px] text-muted/50 mt-1 line-clamp-2">{settings.spotlight_bio}</p>

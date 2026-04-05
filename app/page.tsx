@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { getPublicTracks, getSettings, getLogoUrl, sendMessage, type Track, type SiteSettings } from "@/lib/supabase";
+import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, sendMessage, type Track, type SiteSettings } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
 
 function fmt(s: number | null): string {
@@ -25,6 +25,9 @@ export default function PlayerPage() {
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null });
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
+  const [spotlight, setSpotlight] = useState<Track[]>([]);
+  const [spotlightArt, setSpotlightArt] = useState<Record<string, string>>({});
+  const [spotlightExpanded, setSpotlightExpanded] = useState(false);
 
   const [noteText, setNoteText] = useState("");
   const [noteSending, setNoteSending] = useState(false);
@@ -34,10 +37,18 @@ export default function PlayerPage() {
   const { tracks, setTracks, current, isPlaying, playTrack, togglePlay, setExpanded } = usePlayer();
 
   useEffect(() => {
-    Promise.all([getSettings(), getPublicTracks()])
-      .then(async ([s, t]) => {
-        setSettings(s); setTracks(t);
+    Promise.all([getSettings(), getPublicTracks(), getSpotlightTracks()])
+      .then(async ([s, t, sp]) => {
+        setSettings(s); setTracks(t); setSpotlight(sp);
         if (s.logo_path) { try { setLogoSrc(await getLogoUrl(s.logo_path)); } catch {} }
+        // Load spotlight artwork
+        const artUrls: Record<string, string> = {};
+        for (const track of sp) {
+          if (track.artwork_path) {
+            try { artUrls[track.id] = await getSignedUrl(track.artwork_path); } catch {}
+          }
+        }
+        setSpotlightArt(artUrls);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -82,6 +93,73 @@ export default function PlayerPage() {
           <div className="flex items-center justify-center h-64 text-center px-4"><div><p className="text-red-400 text-sm font-mono mb-2">Connection Error</p><p className="text-dim text-xs font-mono max-w-sm">{error}</p></div></div>
         ) : (
           <div className="max-w-2xl mx-auto">
+
+            {/* ─── SPOTLIGHT ─── */}
+            {spotlight.length > 0 && (
+              <div className="mb-8 rounded-xl overflow-hidden fade-up" style={{ background: "#0a0a0a" }}>
+                {/* Header with artwork */}
+                <div className="flex gap-4 p-4 pb-3">
+                  {/* Artwork */}
+                  <div className="flex-shrink-0">
+                    {spotlightArt[spotlight[0].id] ? (
+                      <img src={spotlightArt[spotlight[0].id]} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover" />
+                    ) : (
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-bg-3 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-dim">{spotlight[0].title.charAt(0)}</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Info + play button */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-3 mb-1">
+                      <button onClick={() => {
+                        const first = spotlight[0];
+                        if (current?.id === first.id) { togglePlay(); } else { playTrack(first); setExpanded(true); }
+                      }}
+                        className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform flex-shrink-0">
+                        {current?.id === spotlight[0].id && isPlaying ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z" /></svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+                        )}
+                      </button>
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-dim font-mono uppercase tracking-widest">{settings.title}</p>
+                        <p className="text-sm font-semibold truncate">{spotlight[0].title}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Spotlight track list */}
+                <div className="px-2 pb-2">
+                  {(spotlightExpanded ? spotlight : spotlight.slice(0, 5)).map((track, i) => {
+                    const isCurrent = current?.id === track.id;
+                    return (
+                      <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); setExpanded(true); } }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left group ${isCurrent ? "bg-bg-3" : "hover:bg-bg-2"}`}>
+                        {spotlightArt[track.id] ? (
+                          <img src={spotlightArt[track.id]} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded bg-bg-3 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[10px] font-bold text-dim">{track.title.charAt(0)}</span>
+                          </div>
+                        )}
+                        <span className="text-xs text-dim font-mono w-4 flex-shrink-0">{i + 1}</span>
+                        <span className={`text-sm truncate flex-1 ${isCurrent ? "text-white font-semibold" : "text-accent/70 group-hover:text-accent"}`}>{track.title}</span>
+                      </button>
+                    );
+                  })}
+                  {spotlight.length > 5 && (
+                    <button onClick={() => setSpotlightExpanded(!spotlightExpanded)}
+                      className="w-full py-2 text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest text-center mt-1">
+                      {spotlightExpanded ? "Show less" : `View ${spotlight.length} tracks`}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {tracks.length === 0 ? (
               <div className="flex items-center justify-center h-48 text-center"><div><p className="text-muted text-sm">No tracks yet</p><a href="/admin" className="text-dim text-xs font-mono hover:text-accent transition-colors">Upload from /admin →</a></div></div>
             ) : (

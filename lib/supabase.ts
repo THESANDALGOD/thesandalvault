@@ -16,6 +16,8 @@ export interface Track {
   video_path: string | null;
   lyrics: string | null;
   is_private: boolean;
+  is_spotlight: boolean;
+  spotlight_order: number;
   sort_order: number;
   created_at: string;
   play_count?: number;
@@ -82,6 +84,27 @@ export async function getTracks(): Promise<Track[]> {
 export async function getPublicTracks(): Promise<Track[]> {
   const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
   if (error) throw error; return data ?? [];
+}
+
+export async function getSpotlightTracks(): Promise<Track[]> {
+  const { data: tracks, error } = await supabase.from("tracks").select("*").eq("is_spotlight", true).eq("is_private", false).order("spotlight_order", { ascending: true });
+  if (error) throw error;
+  if (!tracks || !tracks.length) return [];
+  const { data: plays } = await supabase.from("plays").select("track_id");
+  if (plays) {
+    const counts: Record<string, number> = {};
+    plays.forEach((p) => { counts[p.track_id] = (counts[p.track_id] || 0) + 1; });
+    return tracks.map((t) => ({ ...t, play_count: counts[t.id] || 0 }));
+  }
+  return tracks.map((t) => ({ ...t, play_count: 0 }));
+}
+
+export async function toggleSpotlight(trackId: string, isSpotlight: boolean, spotlightOrder?: number): Promise<void> {
+  const updates: Record<string, unknown> = { is_spotlight: isSpotlight };
+  if (isSpotlight && spotlightOrder !== undefined) updates.spotlight_order = spotlightOrder;
+  if (!isSpotlight) updates.spotlight_order = 0;
+  const { error } = await supabase.from("tracks").update(updates).eq("id", trackId);
+  if (error) throw error;
 }
 
 export async function getTrackById(id: string): Promise<Track | null> {

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
-  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, updateTrackPrivacy, reorderTracks,
+  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage,
   type Track, type LocationStat, type Play, type Message,
 } from "@/lib/supabase";
@@ -104,6 +104,14 @@ export default function AdminPage() {
 
   const handleTogglePrivacy = async (track: Track) => {
     try { await updateTrackPrivacy(track.id, !track.is_private); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
+  };
+
+  const handleToggleSpotlight = async (track: Track) => {
+    try {
+      const spotlightCount = tracks.filter((t) => t.is_spotlight).length;
+      await toggleSpotlight(track.id, !track.is_spotlight, spotlightCount);
+      loadTracks();
+    } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
   };
 
   const moveTrack = async (index: number, dir: number) => {
@@ -255,9 +263,17 @@ export default function AdminPage() {
                               {track.version} · {track.play_count || 0} play{(track.play_count || 0) !== 1 ? "s" : ""}
                               {track.artwork_path && " · art"}{track.video_path && " · vid"}{track.lyrics && " · lyrics"}
                               {track.is_private && <span className="text-yellow-500/60"> · private</span>}
+                              {track.is_spotlight && <span className="text-orange-400/60"> · spotlight</span>}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-3">
+                            <button onClick={() => handleToggleSpotlight(track)}
+                              className={`transition-colors ${track.is_spotlight ? "text-orange-400" : "text-dim hover:text-orange-400 opacity-0 group-hover:opacity-100"}`}
+                              title={track.is_spotlight ? "Remove from spotlight" : "Add to spotlight"}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill={track.is_spotlight ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                            </button>
                             <button onClick={() => handleTogglePrivacy(track)}
                               className={`transition-colors ${track.is_private ? "text-yellow-500/60" : "text-dim hover:text-accent opacity-0 group-hover:opacity-100"}`}
                               title={track.is_private ? "Make public" : "Make private"}>

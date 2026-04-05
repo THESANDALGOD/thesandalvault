@@ -8,6 +8,8 @@ alter table public.tracks add column if not exists video_path text;
 alter table public.tracks add column if not exists lyrics text;
 alter table public.tracks add column if not exists is_private boolean default false;
 alter table public.tracks add column if not exists sort_order integer default 0;
+alter table public.tracks add column if not exists is_spotlight boolean default false;
+alter table public.tracks add column if not exists spotlight_order integer default 0;
 
 -- Anonymous messages
 create table if not exists public.messages (

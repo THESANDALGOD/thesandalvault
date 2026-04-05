@@ -36,6 +36,8 @@ function SuccessContent() {
   const [data, setData] = useState<VerifyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [zipping, setZipping] = useState(false);
+  const [zipProgress, setZipProgress] = useState("");
 
   useEffect(() => {
     if (!sessionId) { setError("No session found"); setLoading(false); return; }
@@ -62,6 +64,63 @@ function SuccessContent() {
     a.download = `${track.title} - Lyrics.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadAll = async () => {
+    if (!data) return;
+    setZipping(true); setZipProgress("Preparing...");
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+      const projectName = data.projectName || "download";
+
+      for (let i = 0; i < data.downloads.length; i++) {
+        const track = data.downloads[i];
+        setZipProgress(`Downloading ${i + 1}/${data.downloads.length}...`);
+
+        if (track.audioUrl) {
+          try {
+            const res = await fetch(track.audioUrl);
+            const blob = await res.blob();
+            const ext = track.audioUrl.includes(".wav") ? "wav" : "mp3";
+            zip.file(`${String(i + 1).padStart(2, "0")} - ${track.title}.${ext}`, blob);
+          } catch {}
+        }
+
+        if (track.lyrics) {
+          zip.file(`${String(i + 1).padStart(2, "0")} - ${track.title} (Lyrics).txt`, `${track.title}\n${track.version}\n\n${track.lyrics}`);
+        }
+
+        if (track.artworkUrl) {
+          try {
+            const res = await fetch(track.artworkUrl);
+            const blob = await res.blob();
+            zip.file(`${String(i + 1).padStart(2, "0")} - ${track.title} (Art).jpg`, blob);
+          } catch {}
+        }
+      }
+
+      // Add cover art
+      if (data.coverUrl) {
+        try {
+          const res = await fetch(data.coverUrl);
+          const blob = await res.blob();
+          zip.file("Cover.jpg", blob);
+        } catch {}
+      }
+
+      setZipProgress("Zipping...");
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${projectName}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("ZIP error:", err);
+    }
+    setZipping(false); setZipProgress("");
   };
 
   if (loading) {
@@ -108,6 +167,22 @@ function SuccessContent() {
         {/* Downloads */}
         <div className="mb-8">
           <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-4">Your Downloads</p>
+
+          {/* Download All */}
+          <button
+            onClick={downloadAll}
+            disabled={zipping}
+            className="w-full py-3.5 mb-4 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-60 disabled:cursor-wait transition-all flex items-center justify-center gap-2"
+          >
+            {zipping ? (
+              <><span className="animate-pulse">{zipProgress}</span></>
+            ) : (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
+                Download All (.zip)
+              </>
+            )}
+          </button>
 
           <div className="space-y-2">
             {data.downloads.map((track, i) => (

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import {
-  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight,
+  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage,
   type Track, type LocationStat, type Play, type Message,
 } from "@/lib/supabase";
@@ -53,6 +53,14 @@ export default function AdminPage() {
   const [settingsMsg, setSettingsMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
   const logoRef = useRef<HTMLInputElement>(null);
 
+  // Spotlight settings
+  const [spotTitle, setSpotTitle] = useState("");
+  const [spotBio, setSpotBio] = useState("");
+  const [spotArtFile, setSpotArtFile] = useState<File | null>(null);
+  const [savingSpotlight, setSavingSpotlight] = useState(false);
+  const [spotMsg, setSpotMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
+  const spotArtRef = useRef<HTMLInputElement>(null);
+
   const [totalPlays, setTotalPlays] = useState(0);
   const [countries, setCountries] = useState<LocationStat[]>([]);
   const [cities, setCities] = useState<LocationStat[]>([]);
@@ -62,7 +70,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"upload" | "inbox" | "analytics" | "settings">("upload");
 
   const loadTracks = async () => { setLoadingTracks(true); try { setTracks(await getTracksWithPlayCounts()); } catch {} setLoadingTracks(false); };
-  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); } catch {} };
+  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
   const loadAnalytics = async () => {
     setLoadingAnalytics(true);
     try { const [total, locations, recent] = await Promise.all([getTotalPlays(), getLocationStats(), getRecentPlays(30)]); setTotalPlays(total); setCountries(locations.countries); setCities(locations.cities); setRecentPlays(recent); } catch {}
@@ -138,6 +146,16 @@ export default function AdminPage() {
       setSettingsMsg({ text: "Settings saved", type: "ok" });
     } catch (err: any) { setSettingsMsg({ text: err.message, type: "err" }); }
     setSavingSettings(false);
+  };
+
+  const handleSaveSpotlight = async () => {
+    setSavingSpotlight(true); setSpotMsg(null);
+    try {
+      await updateSpotlightSettings(spotTitle.trim(), spotBio.trim(), spotArtFile);
+      if (spotArtFile) { setSpotArtFile(null); if (spotArtRef.current) spotArtRef.current.value = ""; }
+      setSpotMsg({ text: "Spotlight saved", type: "ok" });
+    } catch (err: any) { setSpotMsg({ text: err.message, type: "err" }); }
+    setSavingSpotlight(false);
   };
 
   if (!authed) {
@@ -406,6 +424,30 @@ export default function AdminPage() {
             <div><label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Logo / Profile Picture</label><input ref={logoRef} type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-mono file:bg-bg-4 file:text-accent cursor-pointer focus:outline-none" />{logoFile && <p className="text-[10px] text-muted font-mono mt-1">{logoFile.name}</p>}<p className="text-[10px] text-dim font-mono mt-1">Square image works best (200×200)</p></div>
             <button onClick={handleSaveSettings} disabled={savingSettings} className="w-full py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all mt-2">{savingSettings ? "Saving..." : "Save Settings"}</button>
             {settingsMsg && <p className={`text-xs text-center font-mono ${settingsMsg.type === "err" ? "text-red-400" : "text-green-400"}`}>{settingsMsg.text}</p>}
+
+            <div className="border-t border-bg-3 pt-6 mt-6" />
+            <h3 className="text-[10px] text-muted font-mono uppercase tracking-widest">Spotlight Playlist</h3>
+            <div>
+              <label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Playlist Name</label>
+              <input type="text" value={spotTitle} onChange={(e) => setSpotTitle(e.target.value)} placeholder="Spotlight"
+                className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted" />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Description</label>
+              <textarea value={spotBio} onChange={(e) => setSpotBio(e.target.value)} placeholder="Write a short bio or description..."
+                rows={3} className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted resize-y font-mono" />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Cover Art</label>
+              <input ref={spotArtRef} type="file" accept="image/*" onChange={(e) => setSpotArtFile(e.target.files?.[0] || null)}
+                className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-mono file:bg-bg-4 file:text-accent cursor-pointer focus:outline-none" />
+              {spotArtFile && <p className="text-[10px] text-muted font-mono mt-1">{spotArtFile.name}</p>}
+              <p className="text-[10px] text-dim font-mono mt-1">Square image works best</p>
+            </div>
+            <button onClick={handleSaveSpotlight} disabled={savingSpotlight}
+              className="w-full py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all mt-2">
+              {savingSpotlight ? "Saving..." : "Save Spotlight"}</button>
+            {spotMsg && <p className={`text-xs text-center font-mono ${spotMsg.type === "err" ? "text-red-400" : "text-green-400"}`}>{spotMsg.text}</p>}
           </div>
         )}
       </div>

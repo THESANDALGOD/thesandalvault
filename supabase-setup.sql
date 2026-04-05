@@ -11,6 +11,11 @@ alter table public.tracks add column if not exists sort_order integer default 0;
 alter table public.tracks add column if not exists is_spotlight boolean default false;
 alter table public.tracks add column if not exists spotlight_order integer default 0;
 
+-- Spotlight playlist settings
+alter table public.site_settings add column if not exists spotlight_title text;
+alter table public.site_settings add column if not exists spotlight_bio text;
+alter table public.site_settings add column if not exists spotlight_artwork_path text;
+
 -- Anonymous messages
 create table if not exists public.messages (
   id uuid default gen_random_uuid() primary key,

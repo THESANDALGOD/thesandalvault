@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { getTrackById, getSettings, getLogoUrl, type Track, type SiteSettings } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
@@ -51,7 +52,7 @@ export default function TrackPage() {
       <div className="min-h-screen flex items-center justify-center text-center px-4">
         <div>
           <p className="text-red-400 text-sm font-mono mb-2">{error || "Track not found"}</p>
-          <a href="/" className="text-dim text-xs font-mono hover:text-accent transition-colors">← Back to all tracks</a>
+          <Link href="/" className="text-dim text-xs font-mono hover:text-accent transition-colors">← Back to all tracks</Link>
         </div>
       </div>
     );
@@ -84,7 +85,7 @@ export default function TrackPage() {
         )}
       </button>
 
-      <a href="/" className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-widest">← All Tracks</a>
+      <Link href="/" className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-widest">← All Tracks</Link>
     </div>
   );
 }

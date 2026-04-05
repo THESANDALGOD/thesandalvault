@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage,
@@ -182,7 +183,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-bg-0 pb-28">
       <header className="px-6 py-5 flex items-center justify-between border-b border-bg-3">
         <div><h1 className="text-sm font-semibold tracking-wide uppercase">Admin</h1><p className="text-[10px] text-muted font-mono tracking-widest uppercase mt-0.5">thesandalvault</p></div>
-        <a href="/" className="text-[10px] text-muted font-mono hover:text-accent transition-colors uppercase tracking-wider">← Player</a>
+        <Link href="/" className="text-[10px] text-muted font-mono hover:text-accent transition-colors uppercase tracking-wider">← Player</Link>
       </header>
 
       <div className="flex border-b border-bg-3 overflow-x-auto">

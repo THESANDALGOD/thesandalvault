@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, sendMessage, type Track, type SiteSettings } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
 
@@ -83,7 +84,7 @@ export default function PlayerPage() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-[10px] text-dim font-mono">{tracks.length} TRACK{tracks.length !== 1 ? "S" : ""}</span>
-          <a href="/admin" className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-wider">Admin →</a>
+          <Link href="/admin" className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-wider">Admin →</Link>
         </div>
       </header>
 
@@ -99,7 +100,7 @@ export default function PlayerPage() {
             {spotlight.length > 0 && (
               <div className="mb-8 rounded-xl overflow-hidden fade-up" style={{ background: "#0a0a0a" }}>
                 {/* Header - clickable to /spotlight */}
-                <a href="/spotlight" className="flex gap-4 p-4 pb-3 group">
+                <Link href="/spotlight" className="flex gap-4 p-4 pb-3 group">
                   <div className="flex-shrink-0">
                     {spotlightCover ? (
                       <img src={spotlightCover} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover group-hover:opacity-90 transition-opacity" />
@@ -122,7 +123,7 @@ export default function PlayerPage() {
                   <div className="flex items-center flex-shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-dim group-hover:text-muted transition-colors"><path d="M9 18l6-6-6-6" /></svg>
                   </div>
-                </a>
+                </Link>
 
                 {/* Preview tracks */}
                 <div className="px-2 pb-2">
@@ -144,17 +145,17 @@ export default function PlayerPage() {
                     );
                   })}
                   {spotlight.length > 3 && (
-                    <a href="/spotlight"
+                    <Link href="/spotlight"
                       className="block w-full py-2 text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest text-center mt-1">
                       View all {spotlight.length} tracks →
-                    </a>
+                    </Link>
                   )}
                 </div>
               </div>
             )}
 
             {tracks.length === 0 ? (
-              <div className="flex items-center justify-center h-48 text-center"><div><p className="text-muted text-sm">No tracks yet</p><a href="/admin" className="text-dim text-xs font-mono hover:text-accent transition-colors">Upload from /admin →</a></div></div>
+              <div className="flex items-center justify-center h-48 text-center"><div><p className="text-muted text-sm">No tracks yet</p><Link href="/admin" className="text-dim text-xs font-mono hover:text-accent transition-colors">Upload from /admin →</Link></div></div>
             ) : (
               <div className="space-y-1">
                 <div className="grid grid-cols-[1fr_60px_50px] px-3 py-2 text-[10px] text-dim font-mono uppercase tracking-widest">

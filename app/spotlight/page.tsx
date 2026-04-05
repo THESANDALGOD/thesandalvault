@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { getSpotlightTracks, getSettings, getSignedUrl, getLogoUrl, type Track, type SiteSettings } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
 
@@ -65,7 +66,7 @@ export default function SpotlightPage() {
             <p className="text-[10px] text-muted font-mono tracking-widest lowercase">{settings.subtitle}</p>
           </div>
         </div>
-        <a href="/" className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-wider">← Back</a>
+        <Link href="/" className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-wider">← Back</Link>
       </header>
 
       <main className="flex-1 px-4 py-6">

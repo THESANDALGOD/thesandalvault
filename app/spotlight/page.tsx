@@ -54,7 +54,7 @@ export default function SpotlightPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col mobile-scroll pb-24">
+    <div className="min-h-screen flex flex-col pb-28">
       <header className="px-6 py-5 flex items-center justify-between border-b border-bg-3">
         <div className="flex items-center gap-3">
           {logoSrc ? <img src={logoSrc} alt="" className="w-8 h-8 rounded-full object-cover" /> : (

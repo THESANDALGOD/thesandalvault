@@ -58,7 +58,7 @@ export default function TrackPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 pb-24">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 pb-28">
       <div className="text-center mb-10">
         {logoSrc ? (
           <img src={logoSrc} alt="" className="w-16 h-16 rounded-full object-cover mx-auto mb-3" />

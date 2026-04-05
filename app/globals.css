@@ -8,12 +8,9 @@
 
 html { background: #0a0a0a; color: #e2e2e2; }
 
-/* Mobile: player scrolls with content instead of pinned at bottom */
+/* Hide volume slider on mobile */
 @media (max-width: 640px) {
   .volume-control { display: none !important; }
-  .player-bar { padding-bottom: calc(12px + env(safe-area-inset-bottom, 20px)) !important; }
-  .mobile-scroll { display: block !important; overflow: visible !important; }
-  .mobile-scroll main { flex: none !important; overflow: visible !important; }
 }
 
 body {

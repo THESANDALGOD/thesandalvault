@@ -179,7 +179,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-0 pb-24">
+    <div className="min-h-screen bg-bg-0 pb-28">
       <header className="px-6 py-5 flex items-center justify-between border-b border-bg-3">
         <div><h1 className="text-sm font-semibold tracking-wide uppercase">Admin</h1><p className="text-[10px] text-muted font-mono tracking-widest uppercase mt-0.5">thesandalvault</p></div>
         <a href="/" className="text-[10px] text-muted font-mono hover:text-accent transition-colors uppercase tracking-wider">← Player</a>

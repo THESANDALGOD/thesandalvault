@@ -130,7 +130,7 @@ export default function PersistentPlayer() {
 
   // ─── MINI PLAYER BAR ───
   return (
-    <div className="player-bar border-t border-bg-3 bg-bg-1/90 backdrop-blur-xl px-4 py-3">
+    <div className="fixed bottom-0 left-0 w-full z-40 border-t border-bg-3 bg-bg-1/95 backdrop-blur-xl px-4 py-3" style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}>
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-3 mb-3">
           <span className="text-[10px] text-dim font-mono w-8 text-right">{fmt(currentTime)}</span>

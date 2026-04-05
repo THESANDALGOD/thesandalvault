@@ -138,9 +138,13 @@ export async function uploadFile(
 
 export async function updateTrackMedia(
   trackId: string,
-  artworkFile?: File | null, videoFile?: File | null, lyrics?: string | null
+  artworkFile?: File | null, videoFile?: File | null, lyrics?: string | null,
+  title?: string | null, version?: string | null
 ): Promise<void> {
   const updates: Record<string, unknown> = {};
+
+  if (title !== undefined && title !== null) updates.title = title;
+  if (version !== undefined && version !== null) updates.version = version;
 
   if (artworkFile) {
     const path = `art-${Date.now()}.${artworkFile.name.split(".").pop() || "jpg"}`;

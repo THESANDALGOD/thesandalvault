@@ -36,6 +36,8 @@ export default function AdminPage() {
   const [editArtwork, setEditArtwork] = useState<File | null>(null);
   const [editVideo, setEditVideo] = useState<File | null>(null);
   const [editLyrics, setEditLyrics] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [editVersion, setEditVersion] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const editArtRef = useRef<HTMLInputElement>(null);
   const editVidRef = useRef<HTMLInputElement>(null);
@@ -98,7 +100,7 @@ export default function AdminPage() {
 
   const copyLink = (trackId: string) => { navigator.clipboard.writeText(`${window.location.origin}/track/${trackId}`).then(() => { setCopiedId(trackId); setTimeout(() => setCopiedId(null), 2000); }); };
 
-  const startEdit = (track: Track) => { setEditingId(track.id); setEditLyrics(track.lyrics || ""); setEditArtwork(null); setEditVideo(null); };
+  const startEdit = (track: Track) => { setEditingId(track.id); setEditTitle(track.title); setEditVersion(track.version); setEditLyrics(track.lyrics || ""); setEditArtwork(null); setEditVideo(null); };
 
   const handleTogglePrivacy = async (track: Track) => {
     try { await updateTrackPrivacy(track.id, !track.is_private); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
@@ -116,7 +118,7 @@ export default function AdminPage() {
 
   const handleSaveEdit = async (trackId: string) => {
     setSavingEdit(true);
-    try { await updateTrackMedia(trackId, editArtwork, editVideo, editLyrics); setEditingId(null); setMsg({ text: "Track updated", type: "ok" }); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
+    try { await updateTrackMedia(trackId, editArtwork, editVideo, editLyrics, editTitle.trim() || null, editVersion.trim() || null); setEditingId(null); setMsg({ text: "Track updated", type: "ok" }); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
     setSavingEdit(false);
   };
 
@@ -280,6 +282,16 @@ export default function AdminPage() {
                         </div>
                         {isEditing && (
                           <div className="px-3 pb-3 space-y-3 border-t border-bg-3 pt-3">
+                            <div>
+                              <label className="text-[9px] text-dim font-mono uppercase tracking-wider block mb-1">Title</label>
+                              <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
+                                className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-sm text-accent focus:outline-none focus:border-muted" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] text-dim font-mono uppercase tracking-wider block mb-1">Version</label>
+                              <input type="text" value={editVersion} onChange={(e) => setEditVersion(e.target.value)}
+                                className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-sm text-accent font-mono focus:outline-none focus:border-muted" />
+                            </div>
                             <div>
                               <label className="text-[9px] text-dim font-mono uppercase tracking-wider block mb-1">Replace Artwork</label>
                               <input ref={editArtRef} type="file" accept="image/*" onChange={(e) => setEditArtwork(e.target.files?.[0] || null)}

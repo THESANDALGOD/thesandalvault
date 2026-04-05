@@ -144,17 +144,19 @@ export default function PlayerPage() {
                       </button>
                     );
                   })}
-                  <Link href="/spotlight"
-                    className="block w-full py-2 text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest text-center mt-1">
-                    {spotlight.length > 3 ? `View all ${spotlight.length} tracks →` : "View playlist →"}
-                  </Link>
+                  {spotlight.length > 3 && (
+                    <Link href="/spotlight"
+                      className="block w-full py-2 text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest text-center mt-1">
+                      View all {spotlight.length} tracks →
+                    </Link>
+                  )}
                 </div>
               </div>
             )}
 
-            {spotlight.length === 0 && tracks.length === 0 ? (
+            {tracks.length === 0 ? (
               <div className="flex items-center justify-center h-48 text-center"><div><p className="text-muted text-sm">No tracks yet</p><Link href="/admin" className="text-dim text-xs font-mono hover:text-accent transition-colors">Upload from /admin →</Link></div></div>
-            ) : spotlight.length === 0 ? (
+            ) : (
               <div className="space-y-1">
                 <div className="grid grid-cols-[1fr_60px_50px] px-3 py-2 text-[10px] text-dim font-mono uppercase tracking-widest">
                   <span>Title</span><span className="text-right">Ver</span><span className="text-right">Dur</span>
@@ -177,7 +179,7 @@ export default function PlayerPage() {
                   );
                 })}
               </div>
-            ) : null}
+            )}
 
             {/* Leave a note */}
             <div className="mt-12 mb-8 max-w-md mx-auto">

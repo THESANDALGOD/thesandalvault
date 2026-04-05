@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
-  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings,
+  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, deleteTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage,
   type Track, type LocationStat, type Play, type Message,
 } from "@/lib/supabase";
@@ -137,6 +137,12 @@ export default function AdminPage() {
     setSavingEdit(true);
     try { await updateTrackMedia(trackId, editArtwork, editVideo, editLyrics, editTitle.trim() || null, editVersion.trim() || null); setEditingId(null); setMsg({ text: "Track updated", type: "ok" }); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
     setSavingEdit(false);
+  };
+
+  const handleDeleteMedia = async (trackId: string, field: "artwork_path" | "video_path") => {
+    const label = field === "artwork_path" ? "artwork" : "video";
+    if (!confirm(`Delete ${label} from this track?`)) return;
+    try { await deleteTrackMedia(trackId, field); setMsg({ text: `Deleted ${label}`, type: "ok" }); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
   };
 
   const handleSaveSettings = async () => {
@@ -328,12 +334,26 @@ export default function AdminPage() {
                                 className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-sm text-accent font-mono focus:outline-none focus:border-muted" />
                             </div>
                             <div>
-                              <label className="text-[9px] text-dim font-mono uppercase tracking-wider block mb-1">Replace Artwork</label>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-[9px] text-dim font-mono uppercase tracking-wider">Artwork</label>
+                                {track.artwork_path && (
+                                  <button onClick={() => handleDeleteMedia(track.id, "artwork_path")}
+                                    className="text-[9px] text-red-400/60 font-mono hover:text-red-400 transition-colors">Delete</button>
+                                )}
+                              </div>
+                              {track.artwork_path && <p className="text-[9px] text-green-400/50 font-mono mb-1">✓ has artwork</p>}
                               <input ref={editArtRef} type="file" accept="image/*" onChange={(e) => setEditArtwork(e.target.files?.[0] || null)}
                                 className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-xs text-accent file:mr-3 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-mono file:bg-bg-4 file:text-accent cursor-pointer focus:outline-none" />
                             </div>
                             <div>
-                              <label className="text-[9px] text-dim font-mono uppercase tracking-wider block mb-1">Replace Video</label>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="text-[9px] text-dim font-mono uppercase tracking-wider">Video</label>
+                                {track.video_path && (
+                                  <button onClick={() => handleDeleteMedia(track.id, "video_path")}
+                                    className="text-[9px] text-red-400/60 font-mono hover:text-red-400 transition-colors">Delete</button>
+                                )}
+                              </div>
+                              {track.video_path && <p className="text-[9px] text-green-400/50 font-mono mb-1">✓ has video</p>}
                               <input ref={editVidRef} type="file" accept="video/*" onChange={(e) => setEditVideo(e.target.files?.[0] || null)}
                                 className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-xs text-accent file:mr-3 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-mono file:bg-bg-4 file:text-accent cursor-pointer focus:outline-none" />
                             </div>

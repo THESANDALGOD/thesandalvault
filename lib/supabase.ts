@@ -209,6 +209,15 @@ export async function updateTrackMedia(
   }
 }
 
+export async function deleteTrackMedia(trackId: string, field: "artwork_path" | "video_path"): Promise<void> {
+  const { data: track } = await supabase.from("tracks").select(field).eq("id", trackId).single();
+  if (track && track[field]) {
+    await supabase.storage.from("tracks").remove([track[field] as string]);
+  }
+  const { error } = await supabase.from("tracks").update({ [field]: null }).eq("id", trackId);
+  if (error) throw error;
+}
+
 export async function updateTrackPrivacy(trackId: string, isPrivate: boolean): Promise<void> {
   const { error } = await supabase.from("tracks").update({ is_private: isPrivate }).eq("id", trackId);
   if (error) throw error;

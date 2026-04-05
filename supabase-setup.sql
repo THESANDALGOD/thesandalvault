@@ -28,3 +28,18 @@ alter table public.messages enable row level security;
 create policy "Anyone can read messages" on public.messages for select using (true);
 create policy "Anyone can insert messages" on public.messages for insert with check (true);
 create policy "Anyone can delete messages" on public.messages for delete using (true);
+
+-- Purchases
+create table if not exists public.purchases (
+  id uuid default gen_random_uuid() primary key,
+  stripe_session_id text unique,
+  amount numeric(10,2) not null,
+  currency text default 'usd',
+  customer_email text,
+  created_at timestamp with time zone default now()
+);
+
+alter table public.purchases enable row level security;
+
+create policy "Anyone can read purchases" on public.purchases for select using (true);
+create policy "Anyone can insert purchases" on public.purchases for insert with check (true);

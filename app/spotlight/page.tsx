@@ -28,6 +28,11 @@ export default function SpotlightPage() {
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Pricing
+  const [price, setPrice] = useState("5");
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
   const { current, isPlaying, playTrack, togglePlay, setExpanded, setTracks } = usePlayer();
 
   useEffect(() => {
@@ -52,6 +57,20 @@ export default function SpotlightPage() {
       playTrack(spotlightTracks[0]);
       setExpanded(true);
     }
+  };
+
+  const handleCheckout = async () => {
+    setCheckingOut(true); setCheckoutError(null);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: price, projectName: settings.spotlight_title || "Spotlight" }),
+      });
+      const data = await res.json();
+      if (data.error) { setCheckoutError(data.error); setCheckingOut(false); return; }
+      if (data.url) { window.location.href = data.url; }
+    } catch (err: any) { setCheckoutError(err.message || "Checkout failed"); setCheckingOut(false); }
   };
 
   return (
@@ -124,6 +143,53 @@ export default function SpotlightPage() {
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* ─── NAME YOUR PRICE ─── */}
+          {spotlightTracks.length > 0 && (
+            <div className="mt-10 mb-6">
+              <div className="rounded-xl p-6 text-center" style={{ background: "#0a0a0a" }}>
+                <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-3">Support the artist</p>
+                <h3 className="text-lg font-semibold mb-1">Name your price</h3>
+                <p className="text-[11px] text-muted/50 mb-6">Unlock downloads for all tracks, lyrics & artwork</p>
+
+                <div className="flex items-center justify-center gap-3 mb-5">
+                  <span className="text-xl font-semibold text-muted">$</span>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="w-20 px-3 py-2.5 bg-bg-2 border border-bg-4 rounded-lg text-xl text-center text-accent font-semibold focus:outline-none focus:border-muted"
+                  />
+                  <span className="text-xs text-dim font-mono">USD</span>
+                </div>
+
+                <div className="flex justify-center gap-2 mb-5">
+                  {["3", "5", "10", "20"].map((amt) => (
+                    <button key={amt} onClick={() => setPrice(amt)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${price === amt ? "bg-white text-black" : "bg-bg-3 text-muted hover:text-accent"}`}>
+                      ${amt}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleCheckout}
+                  disabled={checkingOut || !price || parseFloat(price) < 1}
+                  className="w-full max-w-xs mx-auto py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  {checkingOut ? "Redirecting to checkout..." : `Unlock for $${parseFloat(price || "0").toFixed(2)}`}
+                </button>
+
+                {checkoutError && (
+                  <p className="text-xs text-red-400 font-mono mt-3">{checkoutError}</p>
+                )}
+
+                <p className="text-[9px] text-dim/40 font-mono mt-4">Powered by Stripe · Secure payment</p>
+              </div>
             </div>
           )}
         </div>

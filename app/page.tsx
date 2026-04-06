@@ -73,15 +73,16 @@ export default function PlayerPage() {
   return (
     <div className="min-h-screen flex flex-col pb-28">
       <header className="px-6 py-5 flex items-center justify-between border-b border-bg-3">
-        <div className="flex items-center gap-3">
+        <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="flex items-center gap-3 active:scale-[0.97] active:opacity-80 transition-all cursor-pointer">
           {logoSrc ? <img src={logoSrc} alt="" className="w-8 h-8 rounded-full object-cover" /> : (
             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center"><span className="text-black text-xs font-bold">{settings.title.charAt(0)}</span></div>
           )}
-          <div>
+          <div className="text-left">
             <h1 className="text-sm font-semibold tracking-wide uppercase">{settings.title}</h1>
             <p className="text-[10px] text-muted font-mono tracking-widest lowercase">{settings.subtitle}</p>
           </div>
-        </div>
+        </button>
         <div className="flex items-center gap-4">
           <span className="text-[10px] text-dim font-mono">{tracks.length} TRACK{tracks.length !== 1 ? "S" : ""}</span>
           <Link href="/admin" className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-wider">Admin →</Link>

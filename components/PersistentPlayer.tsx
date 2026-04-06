@@ -150,7 +150,7 @@ export default function PersistentPlayer() {
   const videoElRef = useRef<HTMLVideoElement>(null);
   const [videoReady, setVideoReady] = useState(false);
 
-  // Preload video when URL changes — update src on persistent element
+  // Preload video when URL changes or player expands
   useEffect(() => {
     setVideoReady(false);
     const vid = videoElRef.current;
@@ -162,7 +162,7 @@ export default function PersistentPlayer() {
       vid.removeAttribute("src");
       vid.load();
     }
-  }, [videoUrl]);
+  }, [videoUrl, expanded]);
 
   if (!current) return null;
 

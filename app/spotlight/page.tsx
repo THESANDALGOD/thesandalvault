@@ -76,7 +76,7 @@ export default function SpotlightPage() {
   return (
     <div className="min-h-screen flex flex-col pb-28">
       <header className="px-6 py-5 flex items-center justify-between border-b border-bg-3">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 active:scale-[0.97] active:opacity-80 transition-all">
           {logoSrc ? <img src={logoSrc} alt="" className="w-8 h-8 rounded-full object-cover" /> : (
             <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center"><span className="text-black text-xs font-bold">{settings.title.charAt(0)}</span></div>
           )}
@@ -84,7 +84,7 @@ export default function SpotlightPage() {
             <h1 className="text-sm font-semibold tracking-wide uppercase">{settings.title}</h1>
             <p className="text-[10px] text-muted font-mono tracking-widest lowercase">{settings.subtitle}</p>
           </div>
-        </div>
+        </Link>
         <Link href="/" className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-wider">← Back</Link>
       </header>
 

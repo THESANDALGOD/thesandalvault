@@ -60,7 +60,7 @@ export default function TrackPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 pb-28">
-      <div className="text-center mb-10">
+      <Link href="/" className="text-center mb-10 block active:scale-[0.97] active:opacity-80 transition-all">
         {logoSrc ? (
           <img src={logoSrc} alt="" className="w-16 h-16 rounded-full object-cover mx-auto mb-3" />
         ) : (
@@ -69,7 +69,7 @@ export default function TrackPage() {
           </div>
         )}
         <p className="text-[10px] text-muted font-mono tracking-widest uppercase">{settings.title}</p>
-      </div>
+      </Link>
 
       <div className="text-center mb-8">
         <h1 className="text-2xl font-semibold mb-1">{track.title}</h1>

@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       amount: (session.amount_total || 0) / 100,
+      email: session.customer_details?.email || null,
       projectName: settings?.spotlight_title || "Spotlight",
       coverUrl,
       downloads,

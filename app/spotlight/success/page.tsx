@@ -18,6 +18,7 @@ interface VerifyData {
   amount: number;
   projectName: string;
   coverUrl: string | null;
+  email: string | null;
   downloads: DownloadTrack[];
 }
 
@@ -38,6 +39,7 @@ function SuccessContent() {
   const [error, setError] = useState<string | null>(null);
   const [zipping, setZipping] = useState(false);
   const [zipProgress, setZipProgress] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
     if (!sessionId) { setError("No session found"); setLoading(false); return; }
@@ -49,7 +51,24 @@ function SuccessContent() {
     })
       .then((res) => res.json())
       .then((d) => {
-        if (d.error) { setError(d.error); } else { setData(d); }
+        if (d.error) { setError(d.error); return; }
+        setData(d);
+        // Auto-send download email
+        if (d.email && d.downloads?.length) {
+          fetch("/api/send-downloads", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: d.email,
+              projectName: d.projectName,
+              downloads: d.downloads,
+              coverUrl: d.coverUrl,
+            }),
+          })
+            .then((r) => r.json())
+            .then((r) => { if (r.success) setEmailSent(true); })
+            .catch(() => {});
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -155,6 +174,9 @@ function SuccessContent() {
           </div>
           <h1 className="text-xl font-semibold mb-1">Thank you</h1>
           <p className="text-sm text-muted font-mono">${data.amount.toFixed(2)} for {data.projectName}</p>
+          {emailSent && data.email && (
+            <p className="text-[11px] text-green-400/60 font-mono mt-2">Downloads sent to {data.email}</p>
+          )}
         </div>
 
         {/* Cover art */}

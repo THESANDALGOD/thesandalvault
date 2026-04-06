@@ -32,31 +32,34 @@ VIBE REFERENCES:
 - Creating in the dark, literally and figuratively
 - The sandal is the foundation. The god is the vision.`;
 
+const FALLBACKS = [
+  "The vault remembers what you forgot.",
+  "You already know the answer. You just don't trust it yet.",
+  "Chaos is just creativity without a deadline.",
+  "The plot was never lost. You just stopped reading.",
+  "Some doors don't have handles. You walk through them anyway.",
+  "3am knows things that noon never will.",
+  "The sandal hits the ground before the god looks up.",
+  "You're asking the vault, but the vault is asking you.",
+  "Growth sounds like silence before it sounds like anything.",
+  "Every unfinished verse is a promise you haven't broken yet.",
+  "The blueprint was always inside the wreckage.",
+  "You don't find yourself. You build yourself from what's left.",
+  "Vibes unclear… ask again.",
+  "The answer is between the lines you haven't written.",
+  "Not everything that echoes is empty.",
+];
+
 export async function POST(req: NextRequest) {
   try {
     const { question } = await req.json();
 
     if (!question?.trim()) {
-      return NextResponse.json({ error: "Empty question" }, { status: 400 });
+      return NextResponse.json({ response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)] });
     }
 
     if (!ANTHROPIC_API_KEY) {
-      // Fallback responses if no API key
-      const fallbacks = [
-        "The vault remembers what you forgot.",
-        "You already know the answer. You just don't trust it yet.",
-        "Chaos is just creativity without a deadline.",
-        "The plot was never lost. You just stopped reading.",
-        "Some doors don't have handles. You walk through them anyway.",
-        "3am knows things that noon never will.",
-        "The sandal hits the ground before the god looks up.",
-        "You're asking the vault, but the vault is asking you.",
-        "Growth sounds like silence before it sounds like anything.",
-        "Every unfinished verse is a promise you haven't broken yet.",
-        "The blueprint was always inside the wreckage.",
-        "You don't find yourself. You build yourself from what's left.",
-      ];
-      return NextResponse.json({ response: fallbacks[Math.floor(Math.random() * fallbacks.length)] });
+      return NextResponse.json({ response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)] });
     }
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -75,17 +78,14 @@ export async function POST(req: NextRequest) {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      console.error("Anthropic API error:", err);
-      return NextResponse.json({ error: "The vault is resting." }, { status: 500 });
+      return NextResponse.json({ response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)] });
     }
 
     const data = await res.json();
-    const text = data.content?.[0]?.text || "...";
+    const text = data.content?.[0]?.text || FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
 
     return NextResponse.json({ response: text });
-  } catch (err: any) {
-    console.error("Vault error:", err);
-    return NextResponse.json({ error: "The vault is elsewhere." }, { status: 500 });
+  } catch {
+    return NextResponse.json({ response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)] });
   }
 }

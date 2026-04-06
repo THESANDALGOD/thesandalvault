@@ -60,25 +60,46 @@ input[type="range"]:hover::-webkit-slider-thumb { opacity: 1; }
 .fade-up { animation: fadeUp 0.4s ease-out forwards; }
 
 /* ─── Vault Orb Animations ─── */
-@keyframes vaultWobble {
-  0% { transform: rotate(0deg) scale(1); }
-  15% { transform: rotate(-8deg) scale(0.95); }
-  30% { transform: rotate(6deg) scale(1.02); }
-  45% { transform: rotate(-4deg) scale(0.98); }
-  60% { transform: rotate(3deg) scale(1.01); }
-  75% { transform: rotate(-1deg) scale(1); }
-  100% { transform: rotate(0deg) scale(1); }
-}
-.vault-wobble { animation: vaultWobble 0.8s ease-in-out; }
 
-@keyframes vaultPulseInner {
+/* Idle float — always alive */
+@keyframes vaultFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.vault-float { animation: vaultFloat 4s ease-in-out infinite; }
+
+/* Liquid internal movement */
+@keyframes vaultLiquid {
+  0% { background-position: 0% 0%; }
+  25% { background-position: 100% 50%; }
+  50% { background-position: 50% 100%; }
+  75% { background-position: 0% 50%; }
+  100% { background-position: 0% 0%; }
+}
+.vault-liquid {
+  background-size: 200% 200%;
+  animation: vaultLiquid 8s ease-in-out infinite;
+}
+
+/* Thinking state — glow increases, pulse */
+.vault-thinking {
+  animation: vaultFloat 1.5s ease-in-out infinite, vaultThinkPulse 0.8s ease-in-out infinite;
+}
+@keyframes vaultThinkPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
+
+/* Core pulse during loading */
+@keyframes vaultCorePulse {
   0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.1); }
+  50% { opacity: 0.6; transform: scale(1.08); }
 }
-.vault-pulse-inner { animation: vaultPulseInner 0.6s ease-in-out infinite; }
+.vault-core-pulse { animation: vaultCorePulse 0.7s ease-in-out infinite; }
 
+/* Response fade in */
 @keyframes vaultFadeIn {
-  from { opacity: 0; transform: translateY(6px); filter: blur(2px); }
+  from { opacity: 0; transform: translateY(6px); filter: blur(3px); }
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
-.vault-fade-in { animation: vaultFadeIn 0.6s ease-out forwards; }
+.vault-fade-in { animation: vaultFadeIn 0.7s ease-out forwards; }

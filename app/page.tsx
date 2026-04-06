@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, sendMessage, type Track, type SiteSettings } from "@/lib/supabase";
+import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, type Track, type SiteSettings } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
 import VaultOrb from "@/components/VaultOrb";
 
@@ -32,11 +32,6 @@ export default function PlayerPage() {
   const [spotlightExpanded, setSpotlightExpanded] = useState(false);
   const [spotlightCover, setSpotlightCover] = useState<string | null>(null);
 
-  const [noteText, setNoteText] = useState("");
-  const [noteSending, setNoteSending] = useState(false);
-  const [noteStatus, setNoteStatus] = useState<"idle" | "sent" | "error">("idle");
-  const lastNoteTime = useRef(0);
-
   const { tracks, setTracks, current, isPlaying, playTrack, togglePlay, setExpanded } = usePlayer();
 
   useEffect(() => {
@@ -56,20 +51,6 @@ export default function PlayerPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
-
-  const handleSendNote = async () => {
-    if (!noteText.trim() || noteSending) return;
-    const now = Date.now();
-    if (now - lastNoteTime.current < 15000) { setNoteStatus("error"); setTimeout(() => setNoteStatus("idle"), 2000); return; }
-    setNoteSending(true); setNoteStatus("idle");
-    try {
-      await sendMessage(noteText.trim().slice(0, 250));
-      lastNoteTime.current = Date.now();
-      setNoteText(""); setNoteStatus("sent");
-      setTimeout(() => setNoteStatus("idle"), 2500);
-    } catch { setNoteStatus("error"); setTimeout(() => setNoteStatus("idle"), 2000); }
-    setNoteSending(false);
-  };
 
   return (
     <div className="min-h-screen flex flex-col pb-28">
@@ -165,36 +146,8 @@ export default function PlayerPage() {
               </div>
             )}
 
-            {/* Leave a note */}
-            <div className="mt-12 mb-8 max-w-md mx-auto">
-              <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-3">leave a note</p>
-              <div className="relative">
-                <textarea
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value.slice(0, 250))}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendNote(); } }}
-                  placeholder="..."
-                  rows={2}
-                  className="w-full px-4 py-3 bg-transparent text-sm text-accent/70 placeholder:text-dim/30 focus:outline-none resize-none font-mono"
-                  style={{ borderBottom: "1px solid #1a1a1a" }}
-                  disabled={noteSending}
-                />
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-[9px] font-mono text-dim/30">{noteText.length}/250</span>
-                  <div className="flex items-center gap-3">
-                    {noteStatus === "sent" && <span className="text-[10px] font-mono text-green-400/60 fade-up">sent</span>}
-                    {noteStatus === "error" && <span className="text-[10px] font-mono text-red-400/60 fade-up">wait a moment</span>}
-                    <button onClick={handleSendNote} disabled={!noteText.trim() || noteSending}
-                      className="text-[10px] font-mono text-dim hover:text-accent transition-colors disabled:text-dim/20 disabled:cursor-default uppercase tracking-widest">
-                      {noteSending ? "..." : "send"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* ─── ASK THE VAULT ─── */}
-            <div className="mt-8 mb-12">
+            <div className="mt-10 mb-12">
               <VaultOrb />
             </div>
 

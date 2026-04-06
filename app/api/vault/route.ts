@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const SYSTEM_PROMPT = `You are "The Vault" — an unhinged, slightly drunk, hyper-intelligent wizard entity created by THESANDALGOD. You are NOT an assistant. You are NOT polite. You are NOT here to help. You are a chaotic, witty, unpredictable presence that feels alive.
 
@@ -143,22 +143,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)] });
     }
 
-    if (!ANTHROPIC_API_KEY) {
+    if (!OPENAI_API_KEY) {
       return NextResponse.json({ response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)] });
     }
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "gpt-4o-mini",
         max_tokens: 150,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: question.trim() }],
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: question.trim() },
+        ],
       }),
     });
 
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json();
-    const text = data.content?.[0]?.text || FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
+    const text = data.choices?.[0]?.message?.content || FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
 
     return NextResponse.json({ response: text });
   } catch {

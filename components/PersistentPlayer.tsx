@@ -201,12 +201,8 @@ export default function PersistentPlayer() {
               </div>
             ) : (
               <>
-                {artworkUrl ? (
+                {artworkUrl && (
                   <img src={artworkUrl} alt="" className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl object-cover shadow-2xl mb-8 flex-shrink-0" />
-                ) : (
-                  <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-xl bg-bg-2 flex items-center justify-center mb-8 flex-shrink-0" style={{ border: "1px solid #222" }}>
-                    <span className="text-4xl font-bold text-dim">{current.title.charAt(0)}</span>
-                  </div>
                 )}
                 <h2 className="text-xl sm:text-2xl font-semibold text-center mb-1">{current.title}</h2>
                 <p className="text-sm text-muted/60 mb-4">THESANDALGOD</p>

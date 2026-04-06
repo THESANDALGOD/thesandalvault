@@ -61,6 +61,14 @@ export default function SpotlightPage() {
 
   const handleCheckout = async () => {
     setCheckingOut(true); setCheckoutError(null);
+    const amount = parseFloat(price || "0");
+
+    // Free download — skip Stripe
+    if (amount === 0) {
+      window.location.href = "/spotlight/success?free=true";
+      return;
+    }
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -168,20 +176,20 @@ export default function SpotlightPage() {
                 </div>
 
                 <div className="flex justify-center gap-2 mb-5">
-                  {["3", "5", "10", "20"].map((amt) => (
+                  {["0", "3", "5", "10", "20"].map((amt) => (
                     <button key={amt} onClick={() => setPrice(amt)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${price === amt ? "bg-white text-black" : "bg-bg-3 text-muted hover:text-accent"}`}>
-                      ${amt}
+                      {amt === "0" ? "Free" : `$${amt}`}
                     </button>
                   ))}
                 </div>
 
                 <button
                   onClick={handleCheckout}
-                  disabled={checkingOut || !price || parseFloat(price) < 1}
+                  disabled={checkingOut}
                   className="w-full max-w-xs mx-auto py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 >
-                  {checkingOut ? "Redirecting to checkout..." : `Unlock for $${parseFloat(price || "0").toFixed(2)}`}
+                  {checkingOut ? "Redirecting..." : parseFloat(price || "0") === 0 ? "Download for free" : `Unlock for $${parseFloat(price || "0").toFixed(2)}`}
                 </button>
 
                 {checkoutError && (

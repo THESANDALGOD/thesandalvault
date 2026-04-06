@@ -7,32 +7,48 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 export async function POST(req: NextRequest) {
   try {
-    const { sessionId } = await req.json();
+    const { sessionId, free } = await req.json();
 
-    if (!sessionId) {
-      return NextResponse.json({ error: "Missing session ID" }, { status: 400 });
-    }
+    let paymentEmail: string | null = null;
+    let paymentAmount = 0;
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-    if (session.payment_status !== "paid") {
-      return NextResponse.json({ error: "Payment not completed" }, { status: 400 });
-    }
-
-    // Record purchase if not already recorded (webhook may have done it first)
-    const { data: existing } = await supabase
-      .from("purchases")
-      .select("id")
-      .eq("stripe_session_id", sessionId)
-      .single();
-
-    if (!existing) {
+    if (free) {
+      // Free download — record $0 purchase
       await supabase.from("purchases").insert({
-        stripe_session_id: sessionId,
-        amount: (session.amount_total || 0) / 100,
-        currency: session.currency || "usd",
-        customer_email: session.customer_details?.email || null,
+        stripe_session_id: `free-${Date.now()}`,
+        amount: 0,
+        currency: "usd",
+        customer_email: null,
       });
+    } else {
+      // Paid — verify with Stripe
+      if (!sessionId) {
+        return NextResponse.json({ error: "Missing session ID" }, { status: 400 });
+      }
+
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (session.payment_status !== "paid") {
+        return NextResponse.json({ error: "Payment not completed" }, { status: 400 });
+      }
+
+      paymentEmail = session.customer_details?.email || null;
+      paymentAmount = (session.amount_total || 0) / 100;
+
+      const { data: existing } = await supabase
+        .from("purchases")
+        .select("id")
+        .eq("stripe_session_id", sessionId)
+        .single();
+
+      if (!existing) {
+        await supabase.from("purchases").insert({
+          stripe_session_id: sessionId,
+          amount: paymentAmount,
+          currency: session.currency || "usd",
+          customer_email: paymentEmail,
+        });
+      }
     }
 
     // Get spotlight tracks
@@ -83,8 +99,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      amount: (session.amount_total || 0) / 100,
-      email: session.customer_details?.email || null,
+      amount: paymentAmount,
+      email: paymentEmail,
       projectName: settings?.spotlight_title || "Spotlight",
       coverUrl,
       downloads,

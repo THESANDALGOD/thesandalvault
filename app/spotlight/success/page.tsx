@@ -33,6 +33,7 @@ export default function SuccessPage() {
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
+  const isFree = searchParams.get("free") === "true";
 
   const [data, setData] = useState<VerifyData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,12 +43,12 @@ function SuccessContent() {
   const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
-    if (!sessionId) { setError("No session found"); setLoading(false); return; }
+    if (!sessionId && !isFree) { setError("No session found"); setLoading(false); return; }
 
     fetch("/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId }),
+      body: JSON.stringify(isFree ? { free: true } : { sessionId }),
     })
       .then((res) => res.json())
       .then((d) => {
@@ -72,7 +73,7 @@ function SuccessContent() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [sessionId]);
+  }, [sessionId, isFree]);
 
   const downloadLyrics = (track: DownloadTrack) => {
     if (!track.lyrics) return;
@@ -146,7 +147,7 @@ function SuccessContent() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-muted text-sm font-mono animate-pulse mb-2">Verifying payment...</div>
+          <div className="text-muted text-sm font-mono animate-pulse mb-2">{isFree ? "Preparing downloads..." : "Verifying payment..."}</div>
           <p className="text-[10px] text-dim font-mono">This may take a moment</p>
         </div>
       </div>
@@ -173,7 +174,7 @@ function SuccessContent() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M5 12l5 5L20 7" /></svg>
           </div>
           <h1 className="text-xl font-semibold mb-1">Thank you</h1>
-          <p className="text-sm text-muted font-mono">${data.amount.toFixed(2)} for {data.projectName}</p>
+          <p className="text-sm text-muted font-mono">{data.amount > 0 ? `$${data.amount.toFixed(2)} for ${data.projectName}` : data.projectName}</p>
           {emailSent && data.email && (
             <p className="text-[11px] text-green-400/60 font-mono mt-2">Downloads sent to {data.email}</p>
           )}

@@ -138,14 +138,6 @@ export default function PlayerPage() {
               )
             )}
 
-            {!settings.show_tracks_on_homepage && spotlight.length > 0 && (
-              <div className="text-center mt-2">
-                <Link href="/spotlight" className="text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest">
-                  View all tracks →
-                </Link>
-              </div>
-            )}
-
             {/* ─── ASK THE VAULT ─── */}
             <div className="mt-10 mb-12">
               <VaultOrb />

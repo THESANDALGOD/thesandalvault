@@ -7,6 +7,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 html { background: #0a0a0a; color: #e2e2e2; }
+html, body { touch-action: manipulation; }
 
 /* Hide volume slider on mobile */
 @media (max-width: 640px) {

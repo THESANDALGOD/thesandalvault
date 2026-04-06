@@ -102,7 +102,7 @@ export default function SpotlightPage() {
               )}
             </div>
             <div className="flex flex-col justify-end text-center sm:text-left flex-1 min-w-0">
-              <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-1">Playlist</p>
+              <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-1">THESANDALGOD</p>
               <h2 className="text-2xl sm:text-3xl font-bold mb-2">{settings.spotlight_title || "Spotlight"}</h2>
               {settings.spotlight_bio && (
                 <p className="text-sm text-muted/60 mb-3 leading-relaxed">{settings.spotlight_bio}</p>

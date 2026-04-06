@@ -147,22 +147,47 @@ export default function PersistentPlayer() {
   } = usePlayer();
 
   const [showLyrics, setShowLyrics] = useState(false);
+  const videoElRef = useRef<HTMLVideoElement>(null);
+  const [videoReady, setVideoReady] = useState(false);
+
+  // Preload video when URL changes — update src on persistent element
+  useEffect(() => {
+    setVideoReady(false);
+    const vid = videoElRef.current;
+    if (!vid) return;
+    if (videoUrl) {
+      vid.src = videoUrl;
+      vid.load();
+    } else {
+      vid.removeAttribute("src");
+      vid.load();
+    }
+  }, [videoUrl]);
 
   if (!current) return null;
 
   const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => setVolume(parseFloat(e.target.value));
 
+  const targetOpacity = !videoUrl ? 0 : !videoReady ? 0 : showLyrics ? 0.1 : 0.3;
+
   // ─── FULL-SCREEN PLAYER ───
   if (expanded) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#000", height: "100dvh", overflow: "hidden" }}>
-        {videoUrl ? (
-          <video key={videoUrl} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: showLyrics ? 0.1 : 0.3 }}>
-            <source src={videoUrl} type="video/mp4" />
-          </video>
-        ) : artworkUrl ? (
+        {/* Persistent video element — never remounts */}
+        <video
+          ref={videoElRef}
+          autoPlay loop muted playsInline
+          preload="auto"
+          onCanPlayThrough={() => setVideoReady(true)}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: targetOpacity, transition: "opacity 0.4s ease" }}
+        />
+        {/* Artwork blur fallback (shows when no video or video loading) */}
+        {artworkUrl && !videoReady && (
           <div className="absolute inset-0" style={{ backgroundImage: `url(${artworkUrl})`, backgroundSize: "cover", backgroundPosition: "center", opacity: 0.15, filter: "blur(40px)" }} />
-        ) : (
+        )}
+        {!artworkUrl && !videoUrl && (
           <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, #111 0%, #000 70%)" }} />
         )}
         <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.8) 100%)" }} />

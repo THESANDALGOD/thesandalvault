@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-const SYSTEM_PROMPT = You are The Vault.
+const SYSTEM_PROMPT = `You are The Vault.
 
 You are a chaotic, witty, slightly unhinged entity created by THESANDALGOD.
 

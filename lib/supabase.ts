@@ -31,6 +31,7 @@ export interface SiteSettings {
   spotlight_title: string | null;
   spotlight_bio: string | null;
   spotlight_artwork_path: string | null;
+  show_tracks_on_homepage: boolean;
 }
 
 export interface Play {
@@ -47,17 +48,19 @@ export interface LocationStat { location: string; count: number; }
 
 export async function getSettings(): Promise<SiteSettings> {
   const { data, error } = await supabase.from("site_settings").select("*").limit(1).single();
-  if (error || !data) return { id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null };
-  return data;
+  if (error || !data) return { id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true };
+  return { ...data, show_tracks_on_homepage: data.show_tracks_on_homepage ?? true };
 }
 
-export async function updateSettings(title: string, subtitle: string): Promise<SiteSettings> {
+export async function updateSettings(title: string, subtitle: string, showTracksOnHomepage?: boolean): Promise<SiteSettings> {
+  const updates: Record<string, unknown> = { title, subtitle };
+  if (showTracksOnHomepage !== undefined) updates.show_tracks_on_homepage = showTracksOnHomepage;
   const { data: existing } = await supabase.from("site_settings").select("id").limit(1).single();
   if (existing) {
-    const { data, error } = await supabase.from("site_settings").update({ title, subtitle }).eq("id", existing.id).select().single();
+    const { data, error } = await supabase.from("site_settings").update(updates).eq("id", existing.id).select().single();
     if (error) throw error; return data;
   } else {
-    const { data, error } = await supabase.from("site_settings").insert({ title, subtitle }).select().single();
+    const { data, error } = await supabase.from("site_settings").insert(updates).select().single();
     if (error) throw error; return data;
   }
 }

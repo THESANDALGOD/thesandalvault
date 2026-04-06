@@ -23,7 +23,7 @@ function EqBars({ active }: { active: boolean }) {
 
 export default function SpotlightPage() {
   const [spotlightTracks, setSpotlightTracks] = useState<Track[]>([]);
-  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null });
+  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true });
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

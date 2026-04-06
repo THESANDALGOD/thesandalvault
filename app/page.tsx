@@ -24,7 +24,7 @@ function EqBars({ active }: { active: boolean }) {
 export default function PlayerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null });
+  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true });
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [spotlight, setSpotlight] = useState<Track[]>([]);
   const [spotlightArt, setSpotlightArt] = useState<Record<string, string>>({});
@@ -128,29 +128,39 @@ export default function PlayerPage() {
               </div>
             )}
 
-            {tracks.length === 0 ? (
-              <div className="flex items-center justify-center h-48 text-center"><div><p className="text-muted text-sm">No tracks yet</p><Link href="/admin" className="text-dim text-xs font-mono hover:text-accent transition-colors">Upload from /admin →</Link></div></div>
-            ) : (
-              <div className="space-y-1">
-                <div className="grid grid-cols-[1fr_50px] px-3 py-2 text-[10px] text-dim font-mono uppercase tracking-widest">
-                  <span>Title</span><span className="text-right">Dur</span>
-                </div>
-                {tracks.map((track, i) => {
-                  const isCurrent = current?.id === track.id;
-                  return (
-                    <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); setExpanded(true); } }}
-                      className={`w-full grid grid-cols-[1fr_50px] items-center px-3 py-3 rounded-lg transition-all duration-200 text-left group fade-up ${isCurrent ? "bg-bg-3 text-white" : "hover:bg-bg-2 text-accent/70 hover:text-accent"}`}
-                      style={{ animationDelay: `${i * 30}ms` }}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-5 flex-shrink-0 flex justify-center">
-                          {isCurrent && isPlaying ? <EqBars active /> : <span className="text-xs text-dim group-hover:text-muted font-mono">{String(i + 1).padStart(2, "0")}</span>}
+            {settings.show_tracks_on_homepage && (
+              tracks.length === 0 ? (
+                <div className="flex items-center justify-center h-48 text-center"><div><p className="text-muted text-sm">No tracks yet</p><Link href="/admin" className="text-dim text-xs font-mono hover:text-accent transition-colors">Upload from /admin →</Link></div></div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="grid grid-cols-[1fr_50px] px-3 py-2 text-[10px] text-dim font-mono uppercase tracking-widest">
+                    <span>Title</span><span className="text-right">Dur</span>
+                  </div>
+                  {tracks.map((track, i) => {
+                    const isCurrent = current?.id === track.id;
+                    return (
+                      <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); setExpanded(true); } }}
+                        className={`w-full grid grid-cols-[1fr_50px] items-center px-3 py-3 rounded-lg transition-all duration-200 text-left group fade-up ${isCurrent ? "bg-bg-3 text-white" : "hover:bg-bg-2 text-accent/70 hover:text-accent"}`}
+                        style={{ animationDelay: `${i * 30}ms` }}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-5 flex-shrink-0 flex justify-center">
+                            {isCurrent && isPlaying ? <EqBars active /> : <span className="text-xs text-dim group-hover:text-muted font-mono">{String(i + 1).padStart(2, "0")}</span>}
+                          </div>
+                          <span className={`text-sm truncate ${isCurrent ? "font-semibold" : "font-medium"}`}>{track.title}</span>
                         </div>
-                        <span className={`text-sm truncate ${isCurrent ? "font-semibold" : "font-medium"}`}>{track.title}</span>
-                      </div>
-                      <span className="text-xs text-dim font-mono text-right">{fmt(track.duration)}</span>
-                    </button>
-                  );
-                })}
+                        <span className="text-xs text-dim font-mono text-right">{fmt(track.duration)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            )}
+
+            {!settings.show_tracks_on_homepage && spotlight.length > 0 && (
+              <div className="text-center mt-2">
+                <Link href="/spotlight" className="text-[10px] font-mono text-dim hover:text-accent transition-colors uppercase tracking-widest">
+                  View all tracks →
+                </Link>
               </div>
             )}
 

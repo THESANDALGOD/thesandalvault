@@ -15,6 +15,7 @@ alter table public.tracks add column if not exists spotlight_order integer defau
 alter table public.site_settings add column if not exists spotlight_title text;
 alter table public.site_settings add column if not exists spotlight_bio text;
 alter table public.site_settings add column if not exists spotlight_artwork_path text;
+alter table public.site_settings add column if not exists show_tracks_on_homepage boolean default true;
 
 -- Anonymous messages
 create table if not exists public.messages (

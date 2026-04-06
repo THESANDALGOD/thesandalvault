@@ -53,6 +53,7 @@ export default function AdminPage() {
 
   const [siteTitle, setSiteTitle] = useState("THESANDALVAULT");
   const [siteSub, setSiteSub] = useState("ideas, drafts, and loops");
+  const [showTracksHome, setShowTracksHome] = useState(true);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
@@ -75,7 +76,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"upload" | "inbox" | "sales" | "analytics" | "settings">("upload");
 
   const loadTracks = async () => { setLoadingTracks(true); try { setTracks(await getTracksWithPlayCounts()); } catch {} setLoadingTracks(false); };
-  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
+  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setShowTracksHome(s.show_tracks_on_homepage); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
   const loadAnalytics = async () => {
     setLoadingAnalytics(true);
     try { const [total, locations, recent] = await Promise.all([getTotalPlays(), getLocationStats(), getRecentPlays(30)]); setTotalPlays(total); setCountries(locations.countries); setCities(locations.cities); setRecentPlays(recent); } catch {}
@@ -154,7 +155,7 @@ export default function AdminPage() {
     setSavingSettings(true); setSettingsMsg(null);
     try {
       if (logoFile) { await uploadLogo(logoFile); setLogoFile(null); if (logoRef.current) logoRef.current.value = ""; }
-      await updateSettings(siteTitle.trim(), siteSub.trim());
+      await updateSettings(siteTitle.trim(), siteSub.trim(), showTracksHome);
       setSettingsMsg({ text: "Settings saved", type: "ok" });
     } catch (err: any) { setSettingsMsg({ text: err.message, type: "err" }); }
     setSavingSettings(false);
@@ -487,6 +488,18 @@ export default function AdminPage() {
             <div><label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Site Title</label><input type="text" value={siteTitle} onChange={(e) => setSiteTitle(e.target.value)} placeholder="THESANDALVAULT" className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted" /></div>
             <div><label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Subtitle / Bio</label><input type="text" value={siteSub} onChange={(e) => setSiteSub(e.target.value)} placeholder="ideas, drafts, and loops" className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted" /></div>
             <div><label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Logo / Profile Picture</label><input ref={logoRef} type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-mono file:bg-bg-4 file:text-accent cursor-pointer focus:outline-none" />{logoFile && <p className="text-[10px] text-muted font-mono mt-1">{logoFile.name}</p>}<p className="text-[10px] text-dim font-mono mt-1">Square image works best (200×200)</p></div>
+            <div>
+              <button type="button" onClick={() => setShowTracksHome(!showTracksHome)}
+                className="flex items-center gap-3 w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg transition-colors hover:bg-bg-3">
+                <div className={`w-8 h-[18px] rounded-full transition-colors relative ${showTracksHome ? "bg-white" : "bg-bg-4"}`}>
+                  <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all ${showTracksHome ? "right-[2px] bg-black" : "left-[2px] bg-dim"}`} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm text-accent">Show tracks on homepage</p>
+                  <p className="text-[9px] text-dim font-mono">{showTracksHome ? "track list visible below EP card" : "only EP card shown, tracks inside playlist page"}</p>
+                </div>
+              </button>
+            </div>
             <button onClick={handleSaveSettings} disabled={savingSettings} className="w-full py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all mt-2">{savingSettings ? "Saving..." : "Save Settings"}</button>
             {settingsMsg && <p className={`text-xs text-center font-mono ${settingsMsg.type === "err" ? "text-red-400" : "text-green-400"}`}>{settingsMsg.text}</p>}
 

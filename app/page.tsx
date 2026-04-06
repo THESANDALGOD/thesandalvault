@@ -139,7 +139,7 @@ export default function PlayerPage() {
             )}
 
             {/* ─── ASK THE VAULT ─── */}
-            <div className="mt-10 mb-12">
+            <div className="mt-16 mb-16 flex items-center justify-center" style={{ minHeight: "50vh" }}>
               <VaultOrb />
             </div>
 

@@ -9,6 +9,14 @@ export default function VaultOrb() {
   const [revealed, setRevealed] = useState(false);
   const cooldownRef = useRef(false);
 
+  // Rotating placeholders
+  const placeholders = ["wassup?", "say something…", "don't be shy", "what you thinking?", "ask me anything…", "type something wild", "go ahead…"];
+  const [phIndex, setPhIndex] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setPhIndex((i) => (i + 1) % placeholders.length), 3500);
+    return () => clearInterval(id);
+  }, []);
+
   // 3D rotation refs (no React state = no re-renders)
   const orbRef = useRef<HTMLDivElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
@@ -173,7 +181,7 @@ export default function VaultOrb() {
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") askVault(); }}
-          placeholder="ask the vault…"
+          placeholder={placeholders[phIndex]}
           disabled={loading}
           maxLength={200}
           className="w-full px-4 py-3 bg-transparent text-sm text-accent/60 placeholder:text-dim/15 focus:outline-none font-mono text-center"

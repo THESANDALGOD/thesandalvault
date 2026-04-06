@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, sendMessage, type Track, type SiteSettings } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
+import VaultOrb from "@/components/VaultOrb";
 
 function fmt(s: number | null): string {
   if (!s || s <= 0) return "0:00";
@@ -190,6 +191,11 @@ export default function PlayerPage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* ─── ASK THE VAULT ─── */}
+            <div className="mt-8 mb-12">
+              <VaultOrb />
             </div>
 
           </div>

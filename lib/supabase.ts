@@ -288,6 +288,23 @@ export async function getRecentPlays(limit = 20): Promise<(Play & { track_title?
   return plays.map((p) => ({ ...p, track_title: titleMap[p.track_id] || "Unknown" }));
 }
 
+// ─── Purchases ───
+
+export interface Purchase {
+  id: string;
+  stripe_session_id: string;
+  amount: number;
+  currency: string;
+  customer_email: string | null;
+  created_at: string;
+}
+
+export async function getPurchases(): Promise<Purchase[]> {
+  const { data, error } = await supabase.from("purchases").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 // ─── Helpers ───
 
 function getAudioDuration(file: File): Promise<number | null> {

@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: "payment",
+      customer_email: undefined,
       metadata: {
         project_name: projectName || "Spotlight",
       },

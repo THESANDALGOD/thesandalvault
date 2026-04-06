@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
   uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, deleteTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings,
-  getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage,
-  type Track, type LocationStat, type Play, type Message,
+  getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage, getPurchases,
+  type Track, type LocationStat, type Play, type Message, type Purchase,
 } from "@/lib/supabase";
 
 const ADMIN_PW = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "sandalgod2026";
@@ -47,6 +47,10 @@ export default function AdminPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null);
 
+  // Purchases
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(false);
+
   const [siteTitle, setSiteTitle] = useState("THESANDALVAULT");
   const [siteSub, setSiteSub] = useState("ideas, drafts, and loops");
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -68,7 +72,7 @@ export default function AdminPage() {
   const [recentPlays, setRecentPlays] = useState<(Play & { track_title?: string })[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
-  const [tab, setTab] = useState<"upload" | "inbox" | "analytics" | "settings">("upload");
+  const [tab, setTab] = useState<"upload" | "inbox" | "sales" | "analytics" | "settings">("upload");
 
   const loadTracks = async () => { setLoadingTracks(true); try { setTracks(await getTracksWithPlayCounts()); } catch {} setLoadingTracks(false); };
   const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
@@ -78,9 +82,10 @@ export default function AdminPage() {
     setLoadingAnalytics(false);
   };
   const loadMessages = async () => { setLoadingMessages(true); try { setMessages(await getMessages()); } catch {} setLoadingMessages(false); };
+  const loadPurchases = async () => { setLoadingPurchases(true); try { setPurchases(await getPurchases()); } catch {} setLoadingPurchases(false); };
 
-  useEffect(() => { if (authed) { loadTracks(); loadSettings(); loadAnalytics(); loadMessages(); } }, [authed]);
-  useEffect(() => { if (authed && tab === "analytics") loadAnalytics(); if (authed && tab === "inbox") loadMessages(); }, [tab]);
+  useEffect(() => { if (authed) { loadTracks(); loadSettings(); loadAnalytics(); loadMessages(); loadPurchases(); } }, [authed]);
+  useEffect(() => { if (authed && tab === "analytics") loadAnalytics(); if (authed && tab === "inbox") loadMessages(); if (authed && tab === "sales") loadPurchases(); }, [tab]);
 
   const handleLogin = (e: React.FormEvent) => { e.preventDefault(); if (pw === ADMIN_PW) { setAuthed(true); } else { setPwError(true); } };
 
@@ -193,7 +198,7 @@ export default function AdminPage() {
       </header>
 
       <div className="flex border-b border-bg-3 overflow-x-auto">
-        {(["upload", "inbox", "analytics", "settings"] as const).map((t) => (
+        {(["upload", "inbox", "sales", "analytics", "settings"] as const).map((t) => (
           <button key={t} onClick={() => { setTab(t); setMsg(null); }}
             className={`flex-1 py-3 text-[10px] font-mono uppercase tracking-widest transition-all whitespace-nowrap px-2 ${tab === t ? "text-accent border-b border-accent" : "text-dim border-b border-transparent"}`}>{t}</button>
         ))}
@@ -402,6 +407,45 @@ export default function AdminPage() {
                       </button>
                     </div>
                     <p className="text-[9px] text-dim font-mono mt-2">{new Date(m.created_at).toLocaleDateString()} · {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ SALES ═══ */}
+        {tab === "sales" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-[10px] text-muted font-mono uppercase tracking-widest">{purchases.length} purchase{purchases.length !== 1 ? "s" : ""}</h2>
+              <button onClick={loadPurchases} className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-wider">Refresh</button>
+            </div>
+
+            {purchases.length > 0 && (
+              <div className="bg-bg-2 rounded-lg p-4 text-center mb-4">
+                <p className="text-3xl font-semibold">${purchases.reduce((sum, p) => sum + Number(p.amount), 0).toFixed(2)}</p>
+                <p className="text-[10px] text-muted font-mono uppercase tracking-widest mt-1">Total Revenue</p>
+              </div>
+            )}
+
+            {loadingPurchases ? (
+              <p className="text-sm text-muted text-center py-12 font-mono animate-pulse">Loading...</p>
+            ) : purchases.length === 0 ? (
+              <p className="text-sm text-dim text-center py-12">No purchases yet</p>
+            ) : (
+              <div className="space-y-2">
+                {purchases.map((p) => (
+                  <div key={p.id} className="px-4 py-3 bg-bg-1 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold">${Number(p.amount).toFixed(2)}</span>
+                      <span className="text-[10px] text-dim font-mono">
+                        {new Date(p.created_at).toLocaleDateString()} · {new Date(p.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                    {p.customer_email && (
+                      <p className="text-[11px] text-accent/60 font-mono">{p.customer_email}</p>
+                    )}
                   </div>
                 ))}
               </div>

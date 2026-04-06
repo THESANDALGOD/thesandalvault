@@ -13,14 +13,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing session ID" }, { status: 400 });
     }
 
-    // Verify with Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
       return NextResponse.json({ error: "Payment not completed" }, { status: 400 });
     }
 
-    // Check if already recorded
+    // Record purchase if not already recorded (webhook may have done it first)
     const { data: existing } = await supabase
       .from("purchases")
       .select("id")
@@ -28,7 +27,6 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (!existing) {
-      // Record purchase
       await supabase.from("purchases").insert({
         stripe_session_id: sessionId,
         amount: (session.amount_total || 0) / 100,
@@ -37,7 +35,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Get spotlight tracks for downloads
+    // Get spotlight tracks
     const { data: tracks } = await supabase
       .from("tracks")
       .select("id, title, version, file_path, artwork_path, lyrics")
@@ -52,15 +50,11 @@ export async function POST(req: NextRequest) {
     // Generate signed download URLs (24 hour expiry)
     const downloads = [];
     for (const track of tracks) {
-      const { data: audioUrl } = await supabase.storage
-        .from("tracks")
-        .createSignedUrl(track.file_path, 86400);
+      const { data: audioUrl } = await supabase.storage.from("tracks").createSignedUrl(track.file_path, 86400);
 
       let artUrl = null;
       if (track.artwork_path) {
-        const { data } = await supabase.storage
-          .from("tracks")
-          .createSignedUrl(track.artwork_path, 86400);
+        const { data } = await supabase.storage.from("tracks").createSignedUrl(track.artwork_path, 86400);
         artUrl = data?.signedUrl || null;
       }
 
@@ -74,7 +68,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Get spotlight artwork
+    // Get spotlight settings
     const { data: settings } = await supabase
       .from("site_settings")
       .select("spotlight_artwork_path, spotlight_title")
@@ -83,9 +77,7 @@ export async function POST(req: NextRequest) {
 
     let coverUrl = null;
     if (settings?.spotlight_artwork_path) {
-      const { data } = await supabase.storage
-        .from("tracks")
-        .createSignedUrl(settings.spotlight_artwork_path, 86400);
+      const { data } = await supabase.storage.from("tracks").createSignedUrl(settings.spotlight_artwork_path, 86400);
       coverUrl = data?.signedUrl || null;
     }
 

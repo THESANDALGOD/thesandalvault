@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const { amount, projectName } = await req.json();
 
-    const cents = Math.max(Math.round(parseFloat(amount) * 100), 100); // minimum $1.00
+    const cents = Math.max(Math.round(parseFloat(amount) * 100), 100);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -25,6 +25,9 @@ export async function POST(req: NextRequest) {
         },
       ],
       mode: "payment",
+      metadata: {
+        project_name: projectName || "Spotlight",
+      },
       success_url: `${req.nextUrl.origin}/spotlight/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.nextUrl.origin}/spotlight`,
     });

@@ -36,6 +36,7 @@ create table if not exists public.purchases (
   amount numeric(10,2) not null,
   currency text default 'usd',
   customer_email text,
+  email_sent boolean default false,
   created_at timestamp with time zone default now()
 );
 

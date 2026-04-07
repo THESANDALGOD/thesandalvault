@@ -126,7 +126,7 @@ export default function VaultOrb() {
     setLoading(true);
     setRevealed(false);
     setResponse(null);
-    setQuestion("");
+    // Do NOT clear input yet — keep it visible
 
     try {
       const res = await fetch("/api/vault", {
@@ -139,12 +139,15 @@ export default function VaultOrb() {
         setResponse(data.response || "...");
         setRevealed(true);
         setLoading(false);
+        // Clear input 4s after response appears
+        setTimeout(() => setQuestion(""), 4000);
       }, 900);
     } catch {
       setTimeout(() => {
         setResponse("vault tweaking… try again");
         setRevealed(true);
         setLoading(false);
+        setTimeout(() => setQuestion(""), 4000);
       }, 900);
     }
   };

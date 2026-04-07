@@ -307,6 +307,8 @@ export default function AdminPage() {
                               {track.artwork_path && " · art"}{track.video_path && " · vid"}{track.lyrics && " · lyrics"}
                               {track.is_private && <span className="text-yellow-500/60"> · private</span>}
                               {track.is_spotlight && <span className="text-orange-400/60"> · spotlight</span>}
+                              {track.project_id && <span className="text-blue-400/60"> · in project</span>}
+                              {!track.project_id && !track.is_private && <span className="text-green-400/40"> · standalone</span>}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-3">

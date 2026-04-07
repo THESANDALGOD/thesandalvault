@@ -114,8 +114,16 @@ export async function getTracks(): Promise<Track[]> {
 }
 
 export async function getPublicTracks(): Promise<Track[]> {
-  const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).is("project_id", null).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
-  if (error) throw error; return data ?? [];
+  const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).is("project_id", null).order("sort_order", { ascending: true }).order("created_at", { ascending: false });
+  if (error) {
+    console.error("[getPublicTracks] query error:", error.message);
+    // Fallback: if project_id column doesn't exist yet, fetch without filter
+    const { data: fallback } = await supabase.from("tracks").select("*").eq("is_private", false).order("sort_order", { ascending: true });
+    console.log("[getPublicTracks] fallback returned:", fallback?.length, "tracks");
+    return fallback ?? [];
+  }
+  console.log("[getPublicTracks] returned:", data?.length, "standalone tracks");
+  return data ?? [];
 }
 
 // ─── Projects ───
@@ -162,10 +170,13 @@ export async function deleteProject(id: string): Promise<void> {
 
 export async function getProjectTracks(projectId: string): Promise<Track[]> {
   const { data, error } = await supabase.from("tracks").select("*").eq("project_id", projectId).eq("is_private", false).order("sort_order", { ascending: true });
-  if (error) throw error; return data ?? [];
+  if (error) { console.error("[getProjectTracks] error:", error.message); throw error; }
+  console.log("[getProjectTracks]", projectId, "returned:", data?.length, "tracks");
+  return data ?? [];
 }
 
 export async function assignTrackToProject(trackId: string, projectId: string | null): Promise<void> {
+  console.log("[assignTrackToProject]", trackId, "→ project:", projectId);
   const { error } = await supabase.from("tracks").update({ project_id: projectId }).eq("id", trackId);
   if (error) throw error;
 }
@@ -285,8 +296,14 @@ export async function deleteTrackMedia(trackId: string, field: "artwork_path" | 
 }
 
 export async function updateTrackPrivacy(trackId: string, isPrivate: boolean): Promise<void> {
+  console.log("[updateTrackPrivacy]", trackId, "→ private:", isPrivate);
   const { error } = await supabase.from("tracks").update({ is_private: isPrivate }).eq("id", trackId);
   if (error) throw error;
+  // When making public, verify project_id state for standalone visibility
+  if (!isPrivate) {
+    const { data: track } = await supabase.from("tracks").select("project_id").eq("id", trackId).single();
+    console.log("[updateTrackPrivacy] after update — project_id:", track?.project_id ?? "null (standalone)");
+  }
 }
 
 export async function reorderTracks(orderedIds: string[]): Promise<void> {

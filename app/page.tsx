@@ -38,6 +38,7 @@ export default function PlayerPage() {
   useEffect(() => {
     Promise.all([getSettings(), getPublicTracks(), getSpotlightTracks(), getProjects()])
       .then(async ([s, t, sp, proj]) => {
+        console.log("[homepage] standalone tracks:", t.length, "| spotlight:", sp.length, "| projects:", proj.length, "| show_tracks_on_homepage:", s.show_tracks_on_homepage);
         setSettings(s); setTracks(t); setSpotlight(sp); setProjectsList(proj);
         if (s.logo_path) { try { setLogoSrc(await getLogoUrl(s.logo_path)); } catch {} }
         if (s.spotlight_artwork_path) { try { setSpotlightCover(await getSignedUrl(s.spotlight_artwork_path)); } catch {} }

@@ -114,16 +114,13 @@ export async function getTracks(): Promise<Track[]> {
 }
 
 export async function getPublicTracks(): Promise<Track[]> {
-  const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).is("project_id", null).order("sort_order", { ascending: true }).order("created_at", { ascending: false });
-  if (error) {
-    console.error("[getPublicTracks] query error:", error.message);
-    // Fallback: if project_id column doesn't exist yet, fetch without filter
-    const { data: fallback } = await supabase.from("tracks").select("*").eq("is_private", false).order("sort_order", { ascending: true });
-    console.log("[getPublicTracks] fallback returned:", fallback?.length, "tracks");
-    return fallback ?? [];
-  }
-  console.log("[getPublicTracks] returned:", data?.length, "standalone tracks");
-  return data ?? [];
+  // Fetch all public tracks, then filter standalone (no project) client-side
+  // This avoids .is("project_id", null) which can be unreliable
+  const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).order("sort_order", { ascending: true }).order("created_at", { ascending: false });
+  if (error) { console.error("[getPublicTracks] error:", error.message); throw error; }
+  const standalone = (data ?? []).filter((t) => !t.project_id);
+  console.log("[getPublicTracks] total public:", data?.length, "| standalone:", standalone.length);
+  return standalone;
 }
 
 // ─── Projects ───

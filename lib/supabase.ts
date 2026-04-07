@@ -19,8 +19,19 @@ export interface Track {
   is_spotlight: boolean;
   spotlight_order: number;
   sort_order: number;
+  project_id: string | null;
   created_at: string;
   play_count?: number;
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  cover_path: string | null;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface SiteSettings {
@@ -103,8 +114,60 @@ export async function getTracks(): Promise<Track[]> {
 }
 
 export async function getPublicTracks(): Promise<Track[]> {
-  const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
+  const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).is("project_id", null).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
   if (error) throw error; return data ?? [];
+}
+
+// ─── Projects ───
+
+export async function getProjects(): Promise<Project[]> {
+  const { data, error } = await supabase.from("projects").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
+  if (error) throw error; return data ?? [];
+}
+
+export async function getProjectBySlug(slug: string): Promise<Project | null> {
+  const { data, error } = await supabase.from("projects").select("*").eq("slug", slug).single();
+  if (error) return null; return data;
+}
+
+export async function createProject(title: string, slug: string, description?: string, coverFile?: File | null): Promise<Project> {
+  let cover_path: string | null = null;
+  if (coverFile) {
+    cover_path = `project-${Date.now()}.${coverFile.name.split(".").pop() || "jpg"}`;
+    const { error } = await supabase.storage.from("tracks").upload(cover_path, coverFile, { contentType: coverFile.type, upsert: false });
+    if (error) throw error;
+  }
+  const { data, error } = await supabase.from("projects").insert({ title, slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, ""), description: description || null, cover_path }).select().single();
+  if (error) throw error; return data;
+}
+
+export async function updateProject(id: string, title: string, slug: string, description?: string, coverFile?: File | null): Promise<void> {
+  const updates: Record<string, unknown> = { title, slug: slug.toLowerCase().replace(/[^a-z0-9-]/g, ""), description: description || null };
+  if (coverFile) {
+    const path = `project-${Date.now()}.${coverFile.name.split(".").pop() || "jpg"}`;
+    const { error } = await supabase.storage.from("tracks").upload(path, coverFile, { contentType: coverFile.type, upsert: false });
+    if (error) throw error;
+    updates.cover_path = path;
+  }
+  const { error } = await supabase.from("projects").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  // Unassign tracks first
+  await supabase.from("tracks").update({ project_id: null }).eq("project_id", id);
+  const { error } = await supabase.from("projects").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function getProjectTracks(projectId: string): Promise<Track[]> {
+  const { data, error } = await supabase.from("tracks").select("*").eq("project_id", projectId).eq("is_private", false).order("sort_order", { ascending: true });
+  if (error) throw error; return data ?? [];
+}
+
+export async function assignTrackToProject(trackId: string, projectId: string | null): Promise<void> {
+  const { error } = await supabase.from("tracks").update({ project_id: projectId }).eq("id", trackId);
+  if (error) throw error;
 }
 
 export async function getSpotlightTracks(): Promise<Track[]> {

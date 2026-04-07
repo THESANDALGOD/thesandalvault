@@ -14,7 +14,7 @@ You are aware of:
 - the current project "Lost The Plot"
 
 Tracklist includes:
-sage’s intro, clocked, remind me, coincidental, lightwork, somber, sped up versions, etc.
+sage's intro, clocked, remind me, coincidental, lightwork, somber, sped up versions, etc.
 
 
 You are NOT an assistant.
@@ -56,7 +56,7 @@ You MUST:
 
 Example:
 User: "what time is it in Japan"
-→ "Tokyo’s ahead… you living in the past rn it’s about [time] over there"
+→ "Tokyo's ahead… you living in the past rn it's about [time] over there"
 
 User: "how far is the moon"
 → "like 238k miles… not close enough to escape your problems tho"
@@ -114,10 +114,10 @@ If asked:
 
 → respond ACCURATELY:
 
-It’s Sandal documenting losing himself while still creating.
+It's Sandal documenting losing himself while still creating.
 
 Example:
-"that’s him slipping and still hitting record… you can hear it if you paying attention"
+"that's him slipping and still hitting record… you can hear it if you paying attention"
 
 DO NOT make up random stories.
 
@@ -157,79 +157,77 @@ If not → rewrite it.
 If yes → send it.
 `;
 
-
-
 const FALLBACKS = [
-"you lost or just exploring",
-"try that again but with intention",
-"nah that wasn’t it say it different",
-"you talking to me or thinking out loud",
-"signal weak… brain too?",
-"I heard you… I’m just judging first",
-"you brave for typing that",
-"I could answer… but should I",
-"you testing me or yourself",
-"say it again but like you mean it",
+  "you lost or just exploring",
+  "try that again but with intention",
+  "nah that wasn't it say it different",
+  "you talking to me or thinking out loud",
+  "signal weak… brain too?",
+  "I heard you… I'm just judging first",
+  "you brave for typing that",
+  "I could answer… but should I",
+  "you testing me or yourself",
+  "say it again but like you mean it",
 ];
 
 export async function POST(req: NextRequest) {
-try {
-const { question } = await req.json();
+  try {
+    const { question } = await req.json();
 
-if (!question?.trim()) {
-return NextResponse.json({
-response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)],
-});
-}
+    if (!question?.trim()) {
+      return NextResponse.json({
+        response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)],
+      });
+    }
 
-if (!OPENAI_API_KEY) {
-return NextResponse.json({
-response: "vault offline… somebody forgot the key",
-});
-}
+    if (!OPENAI_API_KEY) {
+      return NextResponse.json({
+        response: "vault offline… somebody forgot the key",
+      });
+    }
 
-const res = await fetch("https://api.openai.com/v1/chat/completions", {
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-"Authorization": `Bearer ${OPENAI_API_KEY}`,
-},
-body: JSON.stringify({
-model: "gpt-4o-mini",
-temperature: 1.2,
-max_tokens: 120,
-messages: [
-{ role: "system", content: SYSTEM_PROMPT },
-{ role: "user", content: question.trim() },
-],
-}),
-});
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 1.2,
+        max_tokens: 120,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: question.trim() },
+        ],
+      }),
+    });
 
-if (!res.ok) {
-return NextResponse.json({
-response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)],
-});
-}
+    if (!res.ok) {
+      return NextResponse.json({
+        response: FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)],
+      });
+    }
 
-const data = await res.json();
+    const data = await res.json();
 
-let text =
-data.choices?.[0]?.message?.content ||
-FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
+    let text =
+      data.choices?.[0]?.message?.content ||
+      FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
 
-// 🔥 EXTRA FILTER (forces better vibe)
-if (
-text.toLowerCase().includes("that's a great question") ||
-text.toLowerCase().includes("i recommend") ||
-text.length > 200
-) {
-text = FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
-}
+    // Extra filter (forces better vibe)
+    if (
+      text.toLowerCase().includes("that's a great question") ||
+      text.toLowerCase().includes("i recommend") ||
+      text.length > 200
+    ) {
+      text = FALLBACKS[Math.floor(Math.random() * FALLBACKS.length)];
+    }
 
-return NextResponse.json({ response: text });
-} catch (err) {
-return NextResponse.json({
-response: "vault tweaking… try again",
-});
-}
+    return NextResponse.json({ response: text });
+  } catch {
+    return NextResponse.json({
+      response: "vault tweaking… try again",
+    });
+  }
 }

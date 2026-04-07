@@ -5,7 +5,8 @@ import Link from "next/link";
 import {
   uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, deleteTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage, getPurchases,
-  type Track, type LocationStat, type Play, type Message, type Purchase,
+  getProjects, createProject, updateProject, deleteProject, assignTrackToProject,
+  type Track, type LocationStat, type Play, type Message, type Purchase, type Project,
 } from "@/lib/supabase";
 
 const ADMIN_PW = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "sandalgod2026";
@@ -51,6 +52,16 @@ export default function AdminPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loadingPurchases, setLoadingPurchases] = useState(false);
 
+  // Projects
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [newProjTitle, setNewProjTitle] = useState("");
+  const [newProjSlug, setNewProjSlug] = useState("");
+  const [newProjDesc, setNewProjDesc] = useState("");
+  const [newProjCover, setNewProjCover] = useState<File | null>(null);
+  const [savingProject, setSavingProject] = useState(false);
+  const [projMsg, setProjMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
+
   const [siteTitle, setSiteTitle] = useState("THESANDALVAULT");
   const [siteSub, setSiteSub] = useState("ideas, drafts, and loops");
   const [showTracksHome, setShowTracksHome] = useState(true);
@@ -73,7 +84,7 @@ export default function AdminPage() {
   const [recentPlays, setRecentPlays] = useState<(Play & { track_title?: string })[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
-  const [tab, setTab] = useState<"upload" | "inbox" | "sales" | "analytics" | "settings">("upload");
+  const [tab, setTab] = useState<"upload" | "inbox" | "sales" | "projects" | "analytics" | "settings">("upload");
 
   const loadTracks = async () => { setLoadingTracks(true); try { setTracks(await getTracksWithPlayCounts()); } catch {} setLoadingTracks(false); };
   const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setShowTracksHome(s.show_tracks_on_homepage); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
@@ -84,9 +95,10 @@ export default function AdminPage() {
   };
   const loadMessages = async () => { setLoadingMessages(true); try { setMessages(await getMessages()); } catch {} setLoadingMessages(false); };
   const loadPurchases = async () => { setLoadingPurchases(true); try { setPurchases(await getPurchases()); } catch {} setLoadingPurchases(false); };
+  const loadProjects = async () => { setLoadingProjects(true); try { setProjectsList(await getProjects()); } catch {} setLoadingProjects(false); };
 
-  useEffect(() => { if (authed) { loadTracks(); loadSettings(); loadAnalytics(); loadMessages(); loadPurchases(); } }, [authed]);
-  useEffect(() => { if (authed && tab === "analytics") loadAnalytics(); if (authed && tab === "inbox") loadMessages(); if (authed && tab === "sales") loadPurchases(); }, [tab]);
+  useEffect(() => { if (authed) { loadTracks(); loadSettings(); loadAnalytics(); loadMessages(); loadPurchases(); loadProjects(); } }, [authed]);
+  useEffect(() => { if (authed && tab === "analytics") loadAnalytics(); if (authed && tab === "inbox") loadMessages(); if (authed && tab === "sales") loadPurchases(); if (authed && tab === "projects") { loadProjects(); loadTracks(); } }, [tab]);
 
   const handleLogin = (e: React.FormEvent) => { e.preventDefault(); if (pw === ADMIN_PW) { setAuthed(true); } else { setPwError(true); } };
 
@@ -199,7 +211,7 @@ export default function AdminPage() {
       </header>
 
       <div className="flex border-b border-bg-3 overflow-x-auto">
-        {(["upload", "inbox", "sales", "analytics", "settings"] as const).map((t) => (
+        {(["upload", "inbox", "sales", "projects", "analytics", "settings"] as const).map((t) => (
           <button key={t} onClick={() => { setTab(t); setMsg(null); }}
             className={`flex-1 py-3 text-[10px] font-mono uppercase tracking-widest transition-all whitespace-nowrap px-2 ${tab === t ? "text-accent border-b border-accent" : "text-dim border-b border-transparent"}`}>{t}</button>
         ))}
@@ -451,6 +463,88 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ═══ PROJECTS ═══ */}
+        {tab === "projects" && (
+          <div className="space-y-6">
+            {/* Create new project */}
+            <div className="bg-bg-2 rounded-lg p-4 space-y-3">
+              <h3 className="text-[10px] text-muted font-mono uppercase tracking-widest">New Project</h3>
+              <input type="text" value={newProjTitle} onChange={(e) => { setNewProjTitle(e.target.value); setNewProjSlug(e.target.value.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")); }}
+                placeholder="Project title" className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted" />
+              <input type="text" value={newProjSlug} onChange={(e) => setNewProjSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                placeholder="url-slug" className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-sm text-accent font-mono placeholder:text-dim focus:outline-none focus:border-muted" />
+              <input type="text" value={newProjDesc} onChange={(e) => setNewProjDesc(e.target.value)}
+                placeholder="Short description (optional)" className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted" />
+              <input type="file" accept="image/*" onChange={(e) => setNewProjCover(e.target.files?.[0] || null)}
+                className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-xs text-accent file:mr-3 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-mono file:bg-bg-4 file:text-accent cursor-pointer focus:outline-none" />
+              <button
+                onClick={async () => {
+                  if (!newProjTitle.trim() || !newProjSlug.trim()) return;
+                  setSavingProject(true); setProjMsg(null);
+                  try {
+                    await createProject(newProjTitle.trim(), newProjSlug.trim(), newProjDesc.trim(), newProjCover);
+                    setNewProjTitle(""); setNewProjSlug(""); setNewProjDesc(""); setNewProjCover(null);
+                    setProjMsg({ text: "Project created", type: "ok" }); loadProjects();
+                  } catch (err: any) { setProjMsg({ text: err.message, type: "err" }); }
+                  setSavingProject(false);
+                }}
+                disabled={savingProject || !newProjTitle.trim() || !newProjSlug.trim()}
+                className="w-full py-2 bg-white text-black text-xs font-semibold rounded hover:bg-accent disabled:opacity-40 transition-all"
+              >{savingProject ? "Creating..." : "Create Project"}</button>
+              {projMsg && <p className={`text-xs font-mono ${projMsg.type === "err" ? "text-red-400" : "text-green-400"}`}>{projMsg.text}</p>}
+            </div>
+
+            {/* Existing projects */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[10px] text-muted font-mono uppercase tracking-widest">{projectsList.length} project{projectsList.length !== 1 ? "s" : ""}</h3>
+                <button onClick={loadProjects} className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-wider">Refresh</button>
+              </div>
+              {loadingProjects ? (
+                <p className="text-sm text-muted text-center py-8 font-mono animate-pulse">Loading...</p>
+              ) : projectsList.length === 0 ? (
+                <p className="text-sm text-dim text-center py-8">No projects yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {projectsList.map((proj) => (
+                    <div key={proj.id} className="bg-bg-1 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-semibold">{proj.title}</p>
+                          <p className="text-[10px] text-dim font-mono">/project/{proj.slug}</p>
+                        </div>
+                        <button onClick={async () => {
+                          if (!confirm(`Delete "${proj.title}"? Tracks will become standalone.`)) return;
+                          try { await deleteProject(proj.id); loadProjects(); loadTracks(); } catch {}
+                        }} className="text-[10px] text-red-400/60 font-mono hover:text-red-400 transition-colors">Delete</button>
+                      </div>
+                      {/* Assign tracks */}
+                      <p className="text-[9px] text-dim font-mono uppercase tracking-wider mt-3 mb-1">Assign tracks</p>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {tracks.map((track) => {
+                          const assigned = track.project_id === proj.id;
+                          return (
+                            <button key={track.id} onClick={async () => {
+                              try { await assignTrackToProject(track.id, assigned ? null : proj.id); loadTracks(); } catch {}
+                            }}
+                              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left text-xs transition-all ${assigned ? "bg-bg-3 text-white" : "text-dim hover:text-accent"}`}>
+                              <span className={`w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center ${assigned ? "bg-white border-white" : "border-bg-4"}`}>
+                                {assigned && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3"><path d="M5 12l5 5L20 7" /></svg>}
+                              </span>
+                              <span className="truncate">{track.title}</span>
+                              {track.project_id && track.project_id !== proj.id && <span className="text-[9px] text-dim font-mono ml-auto">(other)</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

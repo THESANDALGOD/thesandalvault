@@ -110,3 +110,16 @@ input[type="range"]:hover::-webkit-slider-thumb { opacity: 1; }
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 .vault-fade-in { animation: vaultFadeIn 0.7s ease-out forwards; }
+
+@keyframes vaultBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.vault-bounce { animation: vaultBounce 0.3s ease-out; }
+
+@keyframes vaultFadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-4px); }
+}
+.vault-fade-out { animation: vaultFadeOut 0.6s ease-in forwards; }

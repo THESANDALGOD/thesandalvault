@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, type Track, type SiteSettings } from "@/lib/supabase";
+import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, getProjects, type Track, type SiteSettings, type Project } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
 import VaultOrb from "@/components/VaultOrb";
 
@@ -29,24 +29,28 @@ export default function PlayerPage() {
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [spotlight, setSpotlight] = useState<Track[]>([]);
   const [spotlightArt, setSpotlightArt] = useState<Record<string, string>>({});
-  const [spotlightExpanded, setSpotlightExpanded] = useState(false);
   const [spotlightCover, setSpotlightCover] = useState<string | null>(null);
+  const [projects, setProjectsList] = useState<Project[]>([]);
+  const [projectCovers, setProjectCovers] = useState<Record<string, string>>({});
 
   const { tracks, setTracks, current, isPlaying, playTrack, togglePlay, setExpanded } = usePlayer();
 
   useEffect(() => {
-    Promise.all([getSettings(), getPublicTracks(), getSpotlightTracks()])
-      .then(async ([s, t, sp]) => {
-        setSettings(s); setTracks(t); setSpotlight(sp);
+    Promise.all([getSettings(), getPublicTracks(), getSpotlightTracks(), getProjects()])
+      .then(async ([s, t, sp, proj]) => {
+        setSettings(s); setTracks(t); setSpotlight(sp); setProjectsList(proj);
         if (s.logo_path) { try { setLogoSrc(await getLogoUrl(s.logo_path)); } catch {} }
         if (s.spotlight_artwork_path) { try { setSpotlightCover(await getSignedUrl(s.spotlight_artwork_path)); } catch {} }
         const artUrls: Record<string, string> = {};
         for (const track of sp) {
-          if (track.artwork_path) {
-            try { artUrls[track.id] = await getSignedUrl(track.artwork_path); } catch {}
-          }
+          if (track.artwork_path) { try { artUrls[track.id] = await getSignedUrl(track.artwork_path); } catch {} }
         }
         setSpotlightArt(artUrls);
+        const covers: Record<string, string> = {};
+        for (const p of proj) {
+          if (p.cover_path) { try { covers[p.id] = await getSignedUrl(p.cover_path); } catch {} }
+        }
+        setProjectCovers(covers);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -109,6 +113,33 @@ export default function PlayerPage() {
                 </Link>
               </div>
             )}
+
+            {/* ─── PROJECT CARDS ─── */}
+            {projects.map((proj) => (
+              <div key={proj.id} className="mb-4 rounded-xl overflow-hidden fade-up" style={{ background: "#0a0a0a" }}>
+                <Link href={`/project/${proj.slug}`} className="flex gap-4 p-4 group">
+                  <div className="flex-shrink-0">
+                    {projectCovers[proj.id] ? (
+                      <img src={projectCovers[proj.id]} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg object-cover group-hover:opacity-90 transition-opacity" />
+                    ) : (
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-bg-3 flex items-center justify-center">
+                        <span className="text-lg font-bold text-dim">{proj.title.charAt(0)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <p className="text-[10px] text-dim font-mono uppercase tracking-widest">THESANDALGOD</p>
+                    <p className="text-base font-semibold group-hover:text-white transition-colors">{proj.title}</p>
+                    {proj.description && (
+                      <p className="text-[11px] text-muted/50 mt-1 line-clamp-2">{proj.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center flex-shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-dim group-hover:text-muted transition-colors"><path d="M9 18l6-6-6-6" /></svg>
+                  </div>
+                </Link>
+              </div>
+            ))}
 
             {settings.show_tracks_on_homepage && (
               tracks.length === 0 ? (

@@ -158,7 +158,7 @@ export default function SpotlightPage() {
               {spotlightTracks.map((track, i) => {
                 const isCurrent = current?.id === track.id;
                 return (
-                  <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); setExpanded(true); } }}
+                  <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); } }}
                     className={`w-full grid grid-cols-[1fr_50px] items-center px-3 py-3 rounded-lg transition-all duration-200 text-left group fade-up ${isCurrent ? "bg-bg-3 text-white" : "hover:bg-bg-2 text-accent/70 hover:text-accent"}`}
                     style={{ animationDelay: `${i * 30}ms` }}>
                     <div className="flex items-center gap-3 min-w-0">

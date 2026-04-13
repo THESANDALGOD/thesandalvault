@@ -23,9 +23,9 @@ function EqBars({ active }: { active: boolean }) {
 }
 
 // Reusable track section
-function TrackSection({ title, tracks: sectionTracks, current, isPlaying, playTrack, togglePlay, setExpanded }: {
+function TrackSection({ title, tracks: sectionTracks, current, isPlaying, playTrack, togglePlay }: {
   title: string; tracks: Track[]; current: Track | null; isPlaying: boolean;
-  playTrack: (t: Track) => void; togglePlay: () => void; setExpanded: (v: boolean) => void;
+  playTrack: (t: Track) => void; togglePlay: () => void;
 }) {
   if (sectionTracks.length === 0) return null;
   return (
@@ -35,7 +35,7 @@ function TrackSection({ title, tracks: sectionTracks, current, isPlaying, playTr
         {sectionTracks.map((track, i) => {
           const isCurrent = current?.id === track.id;
           return (
-            <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); setExpanded(true); } }}
+            <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); } }}
               className={`w-full grid grid-cols-[1fr_50px] items-center px-3 py-3 rounded-lg transition-all duration-200 text-left group fade-up ${isCurrent ? "bg-bg-3 text-white" : "hover:bg-bg-2 text-accent/70 hover:text-accent"}`}
               style={{ animationDelay: `${i * 30}ms` }}>
               <div className="flex items-center gap-3 min-w-0">
@@ -67,7 +67,7 @@ export default function PlayerPage() {
   const [freestyles, setFreestyles] = useState<Track[]>([]);
   const [throwaways, setThrowaways] = useState<Track[]>([]);
 
-  const { tracks, setTracks, current, isPlaying, playTrack, togglePlay, setExpanded } = usePlayer();
+  const { tracks, setTracks, current, isPlaying, playTrack, togglePlay } = usePlayer();
 
   useEffect(() => {
     Promise.all([
@@ -185,12 +185,12 @@ export default function PlayerPage() {
             {settings.show_tracks_on_homepage && (
               <>
                 {/* ─── CATEGORIZED SECTIONS ─── */}
-                {settings.show_beats && <TrackSection title="Beats" tracks={beats} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} setExpanded={setExpanded} />}
-                {settings.show_freestyles && <TrackSection title="Freestyles" tracks={freestyles} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} setExpanded={setExpanded} />}
-                {settings.show_throwaways && <TrackSection title="Throwaways" tracks={throwaways} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} setExpanded={setExpanded} />}
+                {settings.show_beats && <TrackSection title="Beats" tracks={beats} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} />}
+                {settings.show_freestyles && <TrackSection title="Freestyles" tracks={freestyles} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} />}
+                {settings.show_throwaways && <TrackSection title="Throwaways" tracks={throwaways} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} />}
 
                 {/* Uncategorized standalone tracks */}
-                <TrackSection title="Tracks" tracks={tracks.filter((t) => !t.category)} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} setExpanded={setExpanded} />
+                <TrackSection title="Tracks" tracks={tracks.filter((t) => !t.category)} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} />
               </>
             )}
 

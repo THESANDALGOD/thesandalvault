@@ -150,6 +150,27 @@ export default function PersistentPlayer() {
   const videoElRef = useRef<HTMLVideoElement>(null);
   const [videoReady, setVideoReady] = useState(false);
 
+  // Mini progress bar refs (must be before any conditional return)
+  const miniProgressRef = useRef<HTMLDivElement>(null);
+  const miniRafRef = useRef<number>(0);
+
+  const miniTick = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && miniProgressRef.current) {
+      const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+      miniProgressRef.current.style.width = `${pct}%`;
+    }
+    miniRafRef.current = requestAnimationFrame(miniTick);
+  }, [audioRef]);
+
+  useEffect(() => {
+    if (!expanded && current) {
+      miniRafRef.current = requestAnimationFrame(miniTick);
+      return () => cancelAnimationFrame(miniRafRef.current);
+    }
+    return () => cancelAnimationFrame(miniRafRef.current);
+  }, [expanded, current, miniTick]);
+
   // Preload video when URL changes or player expands
   useEffect(() => {
     setVideoReady(false);
@@ -264,27 +285,6 @@ export default function PersistentPlayer() {
       </div>
     );
   }
-
-  // ─── Mini progress bar (DOM ref, 60fps) ───
-  const miniProgressRef = useRef<HTMLDivElement>(null);
-  const miniRafRef = useRef<number>(0);
-
-  const miniTick = useCallback(() => {
-    const audio = audioRef.current;
-    if (audio && miniProgressRef.current) {
-      const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
-      miniProgressRef.current.style.width = `${pct}%`;
-    }
-    miniRafRef.current = requestAnimationFrame(miniTick);
-  }, [audioRef]);
-
-  useEffect(() => {
-    if (!expanded && current) {
-      miniRafRef.current = requestAnimationFrame(miniTick);
-      return () => cancelAnimationFrame(miniRafRef.current);
-    }
-    return () => cancelAnimationFrame(miniRafRef.current);
-  }, [expanded, current, miniTick]);
 
   // ─── MINI PLAYER BAR ───
   return (

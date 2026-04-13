@@ -20,6 +20,7 @@ export interface Track {
   spotlight_order: number;
   sort_order: number;
   project_id: string | null;
+  category: string | null;
   created_at: string;
   play_count?: number;
 }
@@ -43,6 +44,9 @@ export interface SiteSettings {
   spotlight_bio: string | null;
   spotlight_artwork_path: string | null;
   show_tracks_on_homepage: boolean;
+  show_beats: boolean;
+  show_freestyles: boolean;
+  show_throwaways: boolean;
 }
 
 export interface Play {
@@ -59,13 +63,21 @@ export interface LocationStat { location: string; count: number; }
 
 export async function getSettings(): Promise<SiteSettings> {
   const { data, error } = await supabase.from("site_settings").select("*").limit(1).single();
-  if (error || !data) return { id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true };
-  return { ...data, show_tracks_on_homepage: data.show_tracks_on_homepage ?? true };
+  if (error || !data) return { id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true, show_beats: true, show_freestyles: true, show_throwaways: true };
+  return { ...data, show_tracks_on_homepage: data.show_tracks_on_homepage ?? true, show_beats: data.show_beats ?? true, show_freestyles: data.show_freestyles ?? true, show_throwaways: data.show_throwaways ?? true };
 }
 
-export async function updateSettings(title: string, subtitle: string, showTracksOnHomepage?: boolean): Promise<SiteSettings> {
+export async function updateSettings(
+  title: string, subtitle: string,
+  toggles?: { show_tracks_on_homepage?: boolean; show_beats?: boolean; show_freestyles?: boolean; show_throwaways?: boolean }
+): Promise<SiteSettings> {
   const updates: Record<string, unknown> = { title, subtitle };
-  if (showTracksOnHomepage !== undefined) updates.show_tracks_on_homepage = showTracksOnHomepage;
+  if (toggles) {
+    if (toggles.show_tracks_on_homepage !== undefined) updates.show_tracks_on_homepage = toggles.show_tracks_on_homepage;
+    if (toggles.show_beats !== undefined) updates.show_beats = toggles.show_beats;
+    if (toggles.show_freestyles !== undefined) updates.show_freestyles = toggles.show_freestyles;
+    if (toggles.show_throwaways !== undefined) updates.show_throwaways = toggles.show_throwaways;
+  }
   const { data: existing } = await supabase.from("site_settings").select("id").limit(1).single();
   if (existing) {
     const { data, error } = await supabase.from("site_settings").update(updates).eq("id", existing.id).select().single();
@@ -178,6 +190,17 @@ export async function assignTrackToProject(trackId: string, projectId: string | 
   if (error) throw error;
 }
 
+export async function updateTrackCategory(trackId: string, category: string | null): Promise<void> {
+  const { error } = await supabase.from("tracks").update({ category }).eq("id", trackId);
+  if (error) throw error;
+}
+
+export async function getTracksByCategory(category: string): Promise<Track[]> {
+  const { data, error } = await supabase.from("tracks").select("*").eq("is_private", false).eq("category", category).order("sort_order", { ascending: true }).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).filter((t) => !t.project_id);
+}
+
 export async function getSpotlightTracks(): Promise<Track[]> {
   const { data: tracks, error } = await supabase.from("tracks").select("*").eq("is_spotlight", true).eq("is_private", false).order("spotlight_order", { ascending: true });
   if (error) throw error;
@@ -217,7 +240,7 @@ export async function getTracksWithPlayCounts(): Promise<Track[]> {
 
 export async function uploadFile(
   file: File, title: string, version: string,
-  artworkFile?: File | null, videoFile?: File | null, lyrics?: string | null, isPrivate?: boolean
+  artworkFile?: File | null, videoFile?: File | null, lyrics?: string | null, isPrivate?: boolean, category?: string | null
 ): Promise<Track> {
   const ext = file.name.split(".").pop() || "mp3";
   const slug = title.replace(/\s+/g, "-").toLowerCase();
@@ -245,7 +268,7 @@ export async function uploadFile(
   const nextOrder = (maxRow?.sort_order ?? -1) + 1;
   const { data, error: insertErr } = await supabase.from("tracks").insert({
     title, version, file_path: filePath, duration,
-    artwork_path, video_path, lyrics: lyrics || null, is_private: isPrivate || false, sort_order: nextOrder,
+    artwork_path, video_path, lyrics: lyrics || null, is_private: isPrivate || false, sort_order: nextOrder, category: category || null,
   }).select().single();
   if (insertErr) throw insertErr;
   return data;

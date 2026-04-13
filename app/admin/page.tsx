@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, deleteTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage, getPurchases,
-  getProjects, createProject, updateProject, deleteProject, assignTrackToProject,
+  getProjects, createProject, updateProject, deleteProject, assignTrackToProject, updateTrackCategory,
   type Track, type LocationStat, type Play, type Message, type Purchase, type Project,
 } from "@/lib/supabase";
 
@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [lyrics, setLyrics] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -40,6 +41,7 @@ export default function AdminPage() {
   const [editLyrics, setEditLyrics] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [editVersion, setEditVersion] = useState("");
+  const [editCategory, setEditCategory] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const editArtRef = useRef<HTMLInputElement>(null);
   const editVidRef = useRef<HTMLInputElement>(null);
@@ -65,6 +67,9 @@ export default function AdminPage() {
   const [siteTitle, setSiteTitle] = useState("THESANDALVAULT");
   const [siteSub, setSiteSub] = useState("ideas, drafts, and loops");
   const [showTracksHome, setShowTracksHome] = useState(true);
+  const [showBeats, setShowBeats] = useState(true);
+  const [showFreestyles, setShowFreestyles] = useState(true);
+  const [showThrowaways, setShowThrowaways] = useState(true);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
@@ -87,7 +92,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"upload" | "inbox" | "sales" | "projects" | "analytics" | "settings">("upload");
 
   const loadTracks = async () => { setLoadingTracks(true); try { setTracks(await getTracksWithPlayCounts()); } catch {} setLoadingTracks(false); };
-  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setShowTracksHome(s.show_tracks_on_homepage); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
+  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setShowTracksHome(s.show_tracks_on_homepage); setShowBeats(s.show_beats); setShowFreestyles(s.show_freestyles); setShowThrowaways(s.show_throwaways); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
   const loadAnalytics = async () => {
     setLoadingAnalytics(true);
     try { const [total, locations, recent] = await Promise.all([getTotalPlays(), getLocationStats(), getRecentPlays(30)]); setTotalPlays(total); setCountries(locations.countries); setCities(locations.cities); setRecentPlays(recent); } catch {}
@@ -107,9 +112,9 @@ export default function AdminPage() {
     if (!file || !title.trim()) { setMsg({ text: "Need a title and a file", type: "err" }); return; }
     setUploading(true); setMsg(null);
     try {
-      await uploadFile(file, title.trim(), version, artworkFile, videoFile, lyrics || null, isPrivate);
+      await uploadFile(file, title.trim(), version, artworkFile, videoFile, lyrics || null, isPrivate, uploadCategory);
       setMsg({ text: `Uploaded "${title.trim()} (${version})"`, type: "ok" });
-      setTitle(""); setVersion("v1"); setFile(null); setArtworkFile(null); setVideoFile(null); setLyrics(""); setIsPrivate(false);
+      setTitle(""); setVersion("v1"); setFile(null); setArtworkFile(null); setVideoFile(null); setLyrics(""); setIsPrivate(false); setUploadCategory(null);
       if (fileRef.current) fileRef.current.value = "";
       if (artRef.current) artRef.current.value = "";
       if (vidRef.current) vidRef.current.value = "";
@@ -127,7 +132,7 @@ export default function AdminPage() {
 
   const copyLink = (trackId: string) => { navigator.clipboard.writeText(`${window.location.origin}/track/${trackId}`).then(() => { setCopiedId(trackId); setTimeout(() => setCopiedId(null), 2000); }); };
 
-  const startEdit = (track: Track) => { setEditingId(track.id); setEditTitle(track.title); setEditVersion(track.version); setEditLyrics(track.lyrics || ""); setEditArtwork(null); setEditVideo(null); };
+  const startEdit = (track: Track) => { setEditingId(track.id); setEditTitle(track.title); setEditVersion(track.version); setEditLyrics(track.lyrics || ""); setEditCategory(track.category || null); setEditArtwork(null); setEditVideo(null); };
 
   const handleTogglePrivacy = async (track: Track) => {
     try { await updateTrackPrivacy(track.id, !track.is_private); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
@@ -153,7 +158,11 @@ export default function AdminPage() {
 
   const handleSaveEdit = async (trackId: string) => {
     setSavingEdit(true);
-    try { await updateTrackMedia(trackId, editArtwork, editVideo, editLyrics, editTitle.trim() || null, editVersion.trim() || null); setEditingId(null); setMsg({ text: "Track updated", type: "ok" }); loadTracks(); } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
+    try {
+      await updateTrackMedia(trackId, editArtwork, editVideo, editLyrics, editTitle.trim() || null, editVersion.trim() || null);
+      await updateTrackCategory(trackId, editCategory);
+      setEditingId(null); setMsg({ text: "Track updated", type: "ok" }); loadTracks();
+    } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
     setSavingEdit(false);
   };
 
@@ -167,7 +176,12 @@ export default function AdminPage() {
     setSavingSettings(true); setSettingsMsg(null);
     try {
       if (logoFile) { await uploadLogo(logoFile); setLogoFile(null); if (logoRef.current) logoRef.current.value = ""; }
-      await updateSettings(siteTitle.trim(), siteSub.trim(), showTracksHome);
+      await updateSettings(siteTitle.trim(), siteSub.trim(), {
+        show_tracks_on_homepage: showTracksHome,
+        show_beats: showBeats,
+        show_freestyles: showFreestyles,
+        show_throwaways: showThrowaways,
+      });
       setSettingsMsg({ text: "Settings saved", type: "ok" });
     } catch (err: any) { setSettingsMsg({ text: err.message, type: "err" }); }
     setSavingSettings(false);
@@ -265,6 +279,17 @@ export default function AdminPage() {
                     </div>
                   </button>
                 </div>
+                <div>
+                  <label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Category</label>
+                  <div className="flex gap-2">
+                    {[{ v: null, l: "None" }, { v: "beat", l: "Beat" }, { v: "freestyle", l: "Freestyle" }, { v: "throwaway", l: "Throwaway" }].map(({ v, l }) => (
+                      <button key={l} type="button" onClick={() => setUploadCategory(v)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${uploadCategory === v ? "bg-white text-black" : "bg-bg-3 text-muted hover:text-accent"}`}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <button type="submit" disabled={uploading}
                 className="w-full py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all">
@@ -309,6 +334,7 @@ export default function AdminPage() {
                               {track.is_spotlight && <span className="text-orange-400/60"> · spotlight</span>}
                               {track.project_id && <span className="text-blue-400/60"> · in project</span>}
                               {!track.project_id && !track.is_private && <span className="text-green-400/40"> · standalone</span>}
+                              {track.category && <span className="text-purple-400/60"> · {track.category}</span>}
                             </p>
                           </div>
                           <div className="flex items-center gap-2 ml-3">
@@ -381,6 +407,17 @@ export default function AdminPage() {
                               <label className="text-[9px] text-dim font-mono uppercase tracking-wider block mb-1">Lyrics</label>
                               <textarea value={editLyrics} onChange={(e) => setEditLyrics(e.target.value)} rows={3}
                                 className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-xs text-accent focus:outline-none resize-y font-mono" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] text-dim font-mono uppercase tracking-wider block mb-1">Category</label>
+                              <div className="flex gap-1.5">
+                                {[{ v: null, l: "None" }, { v: "beat", l: "Beat" }, { v: "freestyle", l: "Freestyle" }, { v: "throwaway", l: "Throwaway" }].map(({ v, l }) => (
+                                  <button key={l} type="button" onClick={() => setEditCategory(v)}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-mono transition-all ${editCategory === v ? "bg-white text-black" : "bg-bg-3 text-muted hover:text-accent"}`}>
+                                    {l}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                             <div className="flex gap-2">
                               <button onClick={() => handleSaveEdit(track.id)} disabled={savingEdit}
@@ -596,6 +633,23 @@ export default function AdminPage() {
                 </div>
               </button>
             </div>
+            {showTracksHome && (
+              <div className="space-y-2 pl-2 border-l-2 border-bg-3 ml-4">
+                {([
+                  { state: showBeats, setter: setShowBeats, label: "Show Beats section" },
+                  { state: showFreestyles, setter: setShowFreestyles, label: "Show Freestyles section" },
+                  { state: showThrowaways, setter: setShowThrowaways, label: "Show Throwaways section" },
+                ] as { state: boolean; setter: (v: boolean) => void; label: string }[]).map(({ state, setter, label }) => (
+                  <button key={label} type="button" onClick={() => setter(!state)}
+                    className="flex items-center gap-3 w-full px-3 py-2 bg-bg-2 border border-bg-4 rounded-lg transition-colors hover:bg-bg-3">
+                    <div className={`w-7 h-[16px] rounded-full transition-colors relative ${state ? "bg-white" : "bg-bg-4"}`}>
+                      <div className={`absolute top-[2px] w-[12px] h-[12px] rounded-full transition-all ${state ? "right-[2px] bg-black" : "left-[2px] bg-dim"}`} />
+                    </div>
+                    <p className="text-xs text-accent">{label}</p>
+                  </button>
+                ))}
+              </div>
+            )}
             <button onClick={handleSaveSettings} disabled={savingSettings} className="w-full py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all mt-2">{savingSettings ? "Saving..." : "Save Settings"}</button>
             {settingsMsg && <p className={`text-xs text-center font-mono ${settingsMsg.type === "err" ? "text-red-400" : "text-green-400"}`}>{settingsMsg.text}</p>}
 

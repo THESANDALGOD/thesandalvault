@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, getProjects, type Track, type SiteSettings, type Project } from "@/lib/supabase";
+import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, getProjects, getTracksByCategory, type Track, type SiteSettings, type Project } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
 import VaultOrb from "@/components/VaultOrb";
 
@@ -22,24 +22,61 @@ function EqBars({ active }: { active: boolean }) {
   );
 }
 
+// Reusable track section
+function TrackSection({ title, tracks: sectionTracks, current, isPlaying, playTrack, togglePlay, setExpanded }: {
+  title: string; tracks: Track[]; current: Track | null; isPlaying: boolean;
+  playTrack: (t: Track) => void; togglePlay: () => void; setExpanded: (v: boolean) => void;
+}) {
+  if (sectionTracks.length === 0) return null;
+  return (
+    <div className="mb-8">
+      <p className="text-[10px] text-dim font-mono uppercase tracking-widest px-3 mb-2">{title}</p>
+      <div className="space-y-1">
+        {sectionTracks.map((track, i) => {
+          const isCurrent = current?.id === track.id;
+          return (
+            <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); setExpanded(true); } }}
+              className={`w-full grid grid-cols-[1fr_50px] items-center px-3 py-3 rounded-lg transition-all duration-200 text-left group fade-up ${isCurrent ? "bg-bg-3 text-white" : "hover:bg-bg-2 text-accent/70 hover:text-accent"}`}
+              style={{ animationDelay: `${i * 30}ms` }}>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-5 flex-shrink-0 flex justify-center">
+                  {isCurrent && isPlaying ? <EqBars active /> : <span className="text-xs text-dim group-hover:text-muted font-mono">{String(i + 1).padStart(2, "0")}</span>}
+                </div>
+                <span className={`text-sm truncate ${isCurrent ? "font-semibold" : "font-medium"}`}>{track.title}</span>
+              </div>
+              <span className="text-xs text-dim font-mono text-right">{fmt(track.duration)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function PlayerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true });
+  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true, show_beats: true, show_freestyles: true, show_throwaways: true });
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [spotlight, setSpotlight] = useState<Track[]>([]);
   const [spotlightArt, setSpotlightArt] = useState<Record<string, string>>({});
   const [spotlightCover, setSpotlightCover] = useState<string | null>(null);
   const [projects, setProjectsList] = useState<Project[]>([]);
   const [projectCovers, setProjectCovers] = useState<Record<string, string>>({});
+  const [beats, setBeats] = useState<Track[]>([]);
+  const [freestyles, setFreestyles] = useState<Track[]>([]);
+  const [throwaways, setThrowaways] = useState<Track[]>([]);
 
   const { tracks, setTracks, current, isPlaying, playTrack, togglePlay, setExpanded } = usePlayer();
 
   useEffect(() => {
-    Promise.all([getSettings(), getPublicTracks(), getSpotlightTracks(), getProjects()])
-      .then(async ([s, t, sp, proj]) => {
-        console.log("[homepage] standalone tracks:", t.length, "| spotlight:", sp.length, "| projects:", proj.length, "| show_tracks_on_homepage:", s.show_tracks_on_homepage);
+    Promise.all([
+      getSettings(), getPublicTracks(), getSpotlightTracks(), getProjects(),
+      getTracksByCategory("beat"), getTracksByCategory("freestyle"), getTracksByCategory("throwaway"),
+    ])
+      .then(async ([s, t, sp, proj, b, f, tw]) => {
         setSettings(s); setTracks(t); setSpotlight(sp); setProjectsList(proj);
+        setBeats(b); setFreestyles(f); setThrowaways(tw);
         if (s.logo_path) { try { setLogoSrc(await getLogoUrl(s.logo_path)); } catch {} }
         if (s.spotlight_artwork_path) { try { setSpotlightCover(await getSignedUrl(s.spotlight_artwork_path)); } catch {} }
         const artUrls: Record<string, string> = {};
@@ -143,31 +180,15 @@ export default function PlayerPage() {
             ))}
 
             {settings.show_tracks_on_homepage && (
-              tracks.length === 0 ? (
-                <div className="flex items-center justify-center h-48 text-center"><div><p className="text-muted text-sm">No tracks yet</p><Link href="/admin" className="text-dim text-xs font-mono hover:text-accent transition-colors">Upload from /admin →</Link></div></div>
-              ) : (
-                <div className="space-y-1">
-                  <div className="grid grid-cols-[1fr_50px] px-3 py-2 text-[10px] text-dim font-mono uppercase tracking-widest">
-                    <span>Title</span><span className="text-right">Dur</span>
-                  </div>
-                  {tracks.map((track, i) => {
-                    const isCurrent = current?.id === track.id;
-                    return (
-                      <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); setExpanded(true); } }}
-                        className={`w-full grid grid-cols-[1fr_50px] items-center px-3 py-3 rounded-lg transition-all duration-200 text-left group fade-up ${isCurrent ? "bg-bg-3 text-white" : "hover:bg-bg-2 text-accent/70 hover:text-accent"}`}
-                        style={{ animationDelay: `${i * 30}ms` }}>
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-5 flex-shrink-0 flex justify-center">
-                            {isCurrent && isPlaying ? <EqBars active /> : <span className="text-xs text-dim group-hover:text-muted font-mono">{String(i + 1).padStart(2, "0")}</span>}
-                          </div>
-                          <span className={`text-sm truncate ${isCurrent ? "font-semibold" : "font-medium"}`}>{track.title}</span>
-                        </div>
-                        <span className="text-xs text-dim font-mono text-right">{fmt(track.duration)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )
+              <>
+                {/* ─── CATEGORIZED SECTIONS ─── */}
+                {settings.show_beats && <TrackSection title="Beats" tracks={beats} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} setExpanded={setExpanded} />}
+                {settings.show_freestyles && <TrackSection title="Freestyles" tracks={freestyles} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} setExpanded={setExpanded} />}
+                {settings.show_throwaways && <TrackSection title="Throwaways" tracks={throwaways} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} setExpanded={setExpanded} />}
+
+                {/* Uncategorized standalone tracks */}
+                <TrackSection title="Tracks" tracks={tracks.filter((t) => !t.category)} current={current} isPlaying={isPlaying} playTrack={playTrack} togglePlay={togglePlay} setExpanded={setExpanded} />
+              </>
             )}
 
             {/* ─── ASK THE VAULT ─── */}

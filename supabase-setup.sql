@@ -50,6 +50,14 @@ create policy "Anyone can delete projects" on public.projects for delete using (
 -- Add project_id to tracks
 alter table public.tracks add column if not exists project_id uuid references public.projects(id) on delete set null;
 
+-- Track categories
+alter table public.tracks add column if not exists category text default null;
+
+-- Section visibility toggles
+alter table public.site_settings add column if not exists show_beats boolean default true;
+alter table public.site_settings add column if not exists show_freestyles boolean default true;
+alter table public.site_settings add column if not exists show_throwaways boolean default true;
+
 -- Purchases
 create table if not exists public.purchases (
   id uuid default gen_random_uuid() primary key,

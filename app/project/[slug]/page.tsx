@@ -24,7 +24,7 @@ function EqBars({ active }: { active: boolean }) {
 export default function ProjectPage({ params }: { params: { slug: string } }) {
   const [project, setProject] = useState<Project | null>(null);
   const [tracks, setProjectTracks] = useState<Track[]>([]);
-  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true });
+  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true, show_beats: true, show_freestyles: true, show_throwaways: true });
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

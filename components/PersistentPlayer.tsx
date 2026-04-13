@@ -265,32 +265,74 @@ export default function PersistentPlayer() {
     );
   }
 
+  // ─── Mini progress bar (DOM ref, 60fps) ───
+  const miniProgressRef = useRef<HTMLDivElement>(null);
+  const miniRafRef = useRef<number>(0);
+
+  const miniTick = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && miniProgressRef.current) {
+      const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+      miniProgressRef.current.style.width = `${pct}%`;
+    }
+    miniRafRef.current = requestAnimationFrame(miniTick);
+  }, [audioRef]);
+
+  useEffect(() => {
+    if (!expanded && current) {
+      miniRafRef.current = requestAnimationFrame(miniTick);
+      return () => cancelAnimationFrame(miniRafRef.current);
+    }
+    return () => cancelAnimationFrame(miniRafRef.current);
+  }, [expanded, current, miniTick]);
+
   // ─── MINI PLAYER BAR ───
   return (
-    <div className="fixed bottom-0 left-0 w-full z-40 border-t border-bg-3 bg-bg-1/95 backdrop-blur-xl px-4 py-3" style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}>
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-2">
-          <Scrubber audioRef={audioRef} />
+    <div
+      onClick={() => setExpanded(true)}
+      className="fixed bottom-0 left-0 w-full z-40 cursor-pointer select-none"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
+      <div style={{
+        background: "rgba(10,10,10,0.75)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+      }}>
+        {/* Progress line — top edge */}
+        <div className="absolute top-0 left-0 w-full h-[2px]" style={{ background: "rgba(255,255,255,0.06)" }}>
+          <div ref={miniProgressRef} className="h-full" style={{ width: "0%", background: "rgba(255,255,255,0.5)", willChange: "width" }} />
         </div>
-        <div className="flex items-center justify-between">
-          <button onClick={() => setExpanded(true)} className="flex-1 min-w-0 text-left flex items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold truncate">{current.title}</p>
-              <p className="text-[10px] text-muted/60">THESANDALGOD</p>
+
+        <div className="px-3 py-2 flex items-center gap-3" style={{ height: 60 }}>
+          {/* Cover art */}
+          {artworkUrl ? (
+            <img src={artworkUrl} alt="" className="w-10 h-10 rounded-md object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: "#161616" }}>
+              <span className="text-xs font-bold text-dim">{current.title.charAt(0)}</span>
             </div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-dim/40 flex-shrink-0"><path d="M18 15l-6-6-6 6" /></svg>
-          </button>
-          <div className="flex items-center gap-4">
-            <button onClick={() => skip(-1)} className="text-muted hover:text-white transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" /></svg></button>
-            <button onClick={togglePlay} className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform">
-              {isPlaying ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z" /></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>}
-            </button>
-            <button onClick={() => skip(1)} className="text-muted hover:text-white transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" /></svg></button>
+          )}
+
+          {/* Track info */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{current.title}</p>
+            <p className="text-xs text-muted/50 truncate">THESANDALGOD</p>
           </div>
-          <div className="volume-control flex-1 flex justify-end items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-dim"><path d="M11 5 6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
-            <input type="range" min={0} max={1} step={0.01} value={volume} onChange={handleVolume} className="w-20"
-              style={{ background: `linear-gradient(to right, #666 ${volume * 100}%, #333 ${volume * 100}%)` }} />
+
+          {/* Controls */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+              className="text-white hover:text-white/80 transition-colors active:scale-95"
+            >
+              {isPlaying ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z" /></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+              )}
+            </button>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-dim/30"><path d="M18 15l-6-6-6 6" /></svg>
           </div>
         </div>
       </div>

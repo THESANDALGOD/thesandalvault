@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, getProjects, getTracksByCategory, type Track, type SiteSettings, type Project } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
 import VaultOrb from "@/components/VaultOrb";
+import SpinTheVault from "@/components/SpinTheVault";
 
 function fmt(s: number | null): string {
   if (!s || s <= 0) return "0:00";
@@ -181,6 +182,11 @@ export default function PlayerPage() {
                 </Link>
               </div>
             ))}
+
+            {/* ─── SPIN THE VAULT (random track planet) ─── */}
+            <div className="my-12 flex items-center justify-center">
+              <SpinTheVault tracks={[...tracks, ...beats, ...freestyles, ...throwaways]} />
+            </div>
 
             {settings.show_tracks_on_homepage && (
               <>

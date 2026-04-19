@@ -15,6 +15,7 @@ interface PlayerState {
   repeatMode: RepeatMode;
   shuffle: boolean;
   expanded: boolean;
+  radioMode: boolean;
   artworkUrl: string | null;
   videoUrl: string | null;
   tracks: Track[];
@@ -28,6 +29,8 @@ interface PlayerState {
   cycleRepeat: () => void;
   toggleShuffle: () => void;
   setExpanded: (v: boolean) => void;
+  startRadio: (allTracks: Track[]) => void;
+  stopRadio: () => void;
 }
 
 const PlayerContext = createContext<PlayerState | null>(null);
@@ -49,6 +52,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off");
   const [shuffle, setShuffle] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [radioMode, setRadioMode] = useState(false);
   const [artworkUrl, setArtworkUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -58,6 +62,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const volumeRef = useRef(0.8);
   const repeatRef = useRef<RepeatMode>("off");
   const shuffleRef = useRef(false);
+  const radioRef = useRef(false);
+  const radioPoolRef = useRef<Track[]>([]);
 
   useEffect(() => { tracksRef.current = tracks; }, [tracks]);
   useEffect(() => { currentRef.current = current; }, [current]);
@@ -74,6 +80,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onPause = () => setIsPlaying(false);
     const onEnd = () => {
       if (repeatRef.current === "one") { audio.currentTime = 0; audio.play(); return; }
+
+      // Radio mode: always pick random from pool, never stop
+      if (radioRef.current) {
+        const pool = radioPoolRef.current;
+        const c = currentRef.current;
+        if (!pool.length) return;
+        const others = pool.length > 1 && c ? pool.filter((tr) => tr.id !== c.id) : pool;
+        playTrackInternal(others[Math.floor(Math.random() * others.length)]);
+        return;
+      }
+
       const t = tracksRef.current; const c = currentRef.current;
       if (!c || !t.length) return;
       if (shuffleRef.current) {
@@ -115,7 +132,27 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const playTrack = useCallback((track: Track) => { playTrackInternal(track); }, []);
+  const playTrack = useCallback((track: Track) => {
+    // Manual track selection exits radio mode
+    radioRef.current = false;
+    setRadioMode(false);
+    playTrackInternal(track);
+  }, []);
+
+  const startRadio = useCallback((allTracks: Track[]) => {
+    if (!allTracks.length) return;
+    radioPoolRef.current = allTracks;
+    radioRef.current = true;
+    setRadioMode(true);
+    // Pick a random track to start
+    const pick = allTracks[Math.floor(Math.random() * allTracks.length)];
+    playTrackInternal(pick);
+  }, []);
+
+  const stopRadio = useCallback(() => {
+    radioRef.current = false;
+    setRadioMode(false);
+  }, []);
 
   const togglePlay = useCallback(() => {
     const a = audioRef.current;
@@ -151,9 +188,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   return (
     <PlayerContext.Provider value={{
-      current, isPlaying, progress, currentTime, duration, volume, repeatMode, shuffle, expanded,
+      current, isPlaying, progress, currentTime, duration, volume, repeatMode, shuffle, expanded, radioMode,
       artworkUrl, videoUrl, tracks, audioRef, setTracks, playTrack, togglePlay, skip, seek, setVolume,
-      cycleRepeat, toggleShuffle, setExpanded,
+      cycleRepeat, toggleShuffle, setExpanded, startRadio, stopRadio,
     }}>
       {children}
     </PlayerContext.Provider>

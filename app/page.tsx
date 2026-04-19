@@ -67,7 +67,7 @@ export default function PlayerPage() {
   const [freestyles, setFreestyles] = useState<Track[]>([]);
   const [throwaways, setThrowaways] = useState<Track[]>([]);
 
-  const { tracks, setTracks, current, isPlaying, playTrack, togglePlay } = usePlayer();
+  const { tracks, setTracks, current, isPlaying, playTrack, togglePlay, radioMode, startRadio } = usePlayer();
 
   useEffect(() => {
     Promise.all([
@@ -120,6 +120,29 @@ export default function PlayerPage() {
           <div className="flex items-center justify-center h-64 text-center px-4"><div><p className="text-red-400 text-sm font-mono mb-2">Connection Error</p><p className="text-dim text-xs font-mono max-w-sm">{error}</p></div></div>
         ) : (
           <div className="max-w-2xl mx-auto">
+
+            {/* ─── 24/7 RADIO ─── */}
+            <div className="mb-10 py-10 flex flex-col items-center justify-center text-center fade-up">
+              <p className="text-[10px] text-dim/50 font-mono uppercase tracking-[0.3em] mb-1">{settings.title}</p>
+              <p className="text-[10px] text-dim/30 font-mono tracking-[0.15em] mb-5">24/7 radio</p>
+              <button
+                onClick={() => {
+                  const allPublic = [...tracks, ...beats, ...freestyles, ...throwaways];
+                  if (allPublic.length) startRadio(allPublic);
+                }}
+                disabled={tracks.length === 0 && beats.length === 0 && freestyles.length === 0 && throwaways.length === 0}
+                className="px-6 py-2 rounded-full text-[11px] font-mono uppercase tracking-[0.2em] transition-all disabled:opacity-20 disabled:cursor-not-allowed hover:bg-white hover:text-black active:scale-95"
+                style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)" }}
+              >
+                {radioMode && isPlaying ? "playing" : "play now"}
+              </button>
+              {radioMode && (
+                <div className="flex items-center gap-1.5 mt-3 fade-up">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 radio-pulse" />
+                  <span className="text-[9px] text-red-400/60 font-mono uppercase tracking-widest">live</span>
+                </div>
+              )}
+            </div>
 
             {/* ─── SPOTLIGHT ─── */}
             {spotlight.length > 0 && (

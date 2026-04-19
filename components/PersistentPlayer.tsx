@@ -142,7 +142,7 @@ function Scrubber({ audioRef }: { audioRef: React.RefObject<HTMLAudioElement | n
 
 export default function PersistentPlayer() {
   const {
-    current, isPlaying, volume, repeatMode, shuffle, expanded,
+    current, isPlaying, volume, repeatMode, shuffle, expanded, radioMode,
     artworkUrl, videoUrl, audioRef, togglePlay, skip, setVolume, cycleRepeat, toggleShuffle, setExpanded,
   } = usePlayer();
 
@@ -317,7 +317,15 @@ export default function PersistentPlayer() {
           {/* Track info */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{current.title}</p>
-            <p className="text-xs text-muted/50 truncate">THESANDALGOD</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs text-muted/50 truncate">THESANDALGOD</p>
+              {radioMode && (
+                <span className="flex items-center gap-1 flex-shrink-0">
+                  <span className="w-1 h-1 rounded-full bg-red-400 radio-pulse" />
+                  <span className="text-[8px] text-red-400/50 font-mono uppercase">live</span>
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Controls */}

@@ -131,8 +131,15 @@ export default function PlayerPage() {
                   if (allPublic.length) startRadio(allPublic);
                 }}
                 disabled={tracks.length === 0 && beats.length === 0 && freestyles.length === 0 && throwaways.length === 0}
-                className="px-6 py-2 rounded-full text-[11px] font-mono uppercase tracking-[0.2em] transition-all disabled:opacity-20 disabled:cursor-not-allowed hover:bg-white hover:text-black active:scale-95"
-                style={{ border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)" }}
+                className="px-6 py-2 rounded-full text-[11px] font-mono uppercase tracking-[0.2em] disabled:opacity-20 disabled:cursor-not-allowed active:scale-[0.97] focus:outline-none"
+                style={{
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  color: "rgba(255,255,255,0.6)",
+                  backgroundColor: "transparent",
+                  WebkitTapHighlightColor: "transparent",
+                  WebkitAppearance: "none",
+                  transition: "transform 0.15s ease, border-color 0.15s ease",
+                }}
               >
                 {radioMode && isPlaying ? "playing" : "play now"}
               </button>

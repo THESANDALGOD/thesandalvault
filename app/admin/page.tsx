@@ -70,6 +70,8 @@ export default function AdminPage() {
   const [showBeats, setShowBeats] = useState(true);
   const [showFreestyles, setShowFreestyles] = useState(true);
   const [showThrowaways, setShowThrowaways] = useState(true);
+  const [showSpotlight, setShowSpotlight] = useState(true);
+  const [showOrb, setShowOrb] = useState(true);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
@@ -92,7 +94,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"upload" | "inbox" | "sales" | "projects" | "analytics" | "settings">("upload");
 
   const loadTracks = async () => { setLoadingTracks(true); try { setTracks(await getTracksWithPlayCounts()); } catch {} setLoadingTracks(false); };
-  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setShowTracksHome(s.show_tracks_on_homepage); setShowBeats(s.show_beats); setShowFreestyles(s.show_freestyles); setShowThrowaways(s.show_throwaways); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
+  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setShowTracksHome(s.show_tracks_on_homepage); setShowBeats(s.show_beats); setShowFreestyles(s.show_freestyles); setShowThrowaways(s.show_throwaways); setShowSpotlight(s.show_spotlight); setShowOrb(s.show_orb); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
   const loadAnalytics = async () => {
     setLoadingAnalytics(true);
     try { const [total, locations, recent] = await Promise.all([getTotalPlays(), getLocationStats(), getRecentPlays(30)]); setTotalPlays(total); setCountries(locations.countries); setCities(locations.cities); setRecentPlays(recent); } catch {}
@@ -181,6 +183,8 @@ export default function AdminPage() {
         show_beats: showBeats,
         show_freestyles: showFreestyles,
         show_throwaways: showThrowaways,
+        show_spotlight: showSpotlight,
+        show_orb: showOrb,
       });
       setSettingsMsg({ text: "Settings saved", type: "ok" });
     } catch (err: any) { setSettingsMsg({ text: err.message, type: "err" }); }
@@ -621,6 +625,25 @@ export default function AdminPage() {
             <div><label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Site Title</label><input type="text" value={siteTitle} onChange={(e) => setSiteTitle(e.target.value)} placeholder="THESANDALVAULT" className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted" /></div>
             <div><label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Subtitle / Bio</label><input type="text" value={siteSub} onChange={(e) => setSiteSub(e.target.value)} placeholder="ideas, drafts, and loops" className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted" /></div>
             <div><label className="text-[10px] text-muted font-mono uppercase tracking-wider block mb-1.5">Logo / Profile Picture</label><input ref={logoRef} type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} className="w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg text-sm text-accent file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-mono file:bg-bg-4 file:text-accent cursor-pointer focus:outline-none" />{logoFile && <p className="text-[10px] text-muted font-mono mt-1">{logoFile.name}</p>}<p className="text-[10px] text-dim font-mono mt-1">Square image works best (200×200)</p></div>
+
+            <p className="text-[10px] text-muted font-mono uppercase tracking-widest mt-4 mb-1">Homepage Sections</p>
+            {([
+              { state: showSpotlight, setter: setShowSpotlight, label: "Show Spotlight section", desc: "EP/playlist card at top of homepage" },
+              { state: showOrb, setter: setShowOrb, label: "Show AI Orb", desc: "Ask the Vault oracle at bottom of homepage" },
+            ] as { state: boolean; setter: (v: boolean) => void; label: string; desc: string }[]).map(({ state, setter, label, desc }) => (
+              <div key={label} className="mb-2">
+                <button type="button" onClick={() => setter(!state)}
+                  className="flex items-center gap-3 w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg transition-colors hover:bg-bg-3">
+                  <div className={`w-8 h-[18px] rounded-full transition-colors relative ${state ? "bg-white" : "bg-bg-4"}`}>
+                    <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all ${state ? "right-[2px] bg-black" : "left-[2px] bg-dim"}`} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm text-accent">{label}</p>
+                    <p className="text-[9px] text-dim font-mono">{desc}</p>
+                  </div>
+                </button>
+              </div>
+            ))}
             <div>
               <button type="button" onClick={() => setShowTracksHome(!showTracksHome)}
                 className="flex items-center gap-3 w-full px-4 py-3 bg-bg-2 border border-bg-4 rounded-lg transition-colors hover:bg-bg-3">

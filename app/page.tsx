@@ -56,7 +56,7 @@ function TrackSection({ title, tracks: sectionTracks, current, isPlaying, playTr
 export default function PlayerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true, show_beats: true, show_freestyles: true, show_throwaways: true });
+  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true, show_beats: true, show_freestyles: true, show_throwaways: true, show_spotlight: true, show_orb: true });
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [spotlight, setSpotlight] = useState<Track[]>([]);
   const [spotlightArt, setSpotlightArt] = useState<Record<string, string>>({});
@@ -145,7 +145,7 @@ export default function PlayerPage() {
             </div>
 
             {/* ─── SPOTLIGHT ─── */}
-            {spotlight.length > 0 && (
+            {settings.show_spotlight && spotlight.length > 0 && (
               <div className="mb-8 rounded-xl overflow-hidden fade-up" style={{ background: "#0a0a0a" }}>
                 {/* Header - clickable to /spotlight */}
                 <Link href="/spotlight" className="flex gap-4 p-4 group">
@@ -218,9 +218,11 @@ export default function PlayerPage() {
             )}
 
             {/* ─── ASK THE VAULT ─── */}
-            <div className="mt-16 mb-16 flex items-center justify-center" style={{ minHeight: "50vh" }}>
-              <VaultOrb />
-            </div>
+            {settings.show_orb && (
+              <div className="mt-16 mb-16 flex items-center justify-center" style={{ minHeight: "50vh" }}>
+                <VaultOrb />
+              </div>
+            )}
 
           </div>
         )}

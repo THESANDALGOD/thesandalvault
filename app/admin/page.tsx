@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import {
-  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, deleteTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings,
+  uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, deleteTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings, reorderSpotlight,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage, getPurchases,
   getProjects, createProject, updateProject, deleteProject, assignTrackToProject, updateTrackCategory,
   type Track, type LocationStat, type Play, type Message, type Purchase, type Project,
@@ -699,6 +699,49 @@ export default function AdminPage() {
               className="w-full py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all mt-2">
               {savingSpotlight ? "Saving..." : "Save Spotlight"}</button>
             {spotMsg && <p className={`text-xs text-center font-mono ${spotMsg.type === "err" ? "text-red-400" : "text-green-400"}`}>{spotMsg.text}</p>}
+
+            {/* ─── Spotlight Track Order ─── */}
+            {(() => {
+              const spotTracks = tracks.filter((t) => t.is_spotlight).sort((a, b) => (a.spotlight_order ?? 999) - (b.spotlight_order ?? 999));
+              if (spotTracks.length === 0) return null;
+
+              const moveSpot = async (index: number, dir: number) => {
+                const newIdx = index + dir;
+                if (newIdx < 0 || newIdx >= spotTracks.length) return;
+                const reordered = [...spotTracks];
+                const [moved] = reordered.splice(index, 1);
+                reordered.splice(newIdx, 0, moved);
+                try {
+                  await reorderSpotlight(reordered.map((t) => t.id));
+                  loadTracks();
+                } catch (err: any) { setMsg({ text: err.message, type: "err" }); }
+              };
+
+              return (
+                <div className="mt-6 pt-4 border-t border-bg-3">
+                  <p className="text-[10px] text-muted font-mono uppercase tracking-widest mb-3">Track Order</p>
+                  <div className="space-y-1">
+                    {spotTracks.map((track, i) => (
+                      <div key={track.id} className="flex items-center gap-2 px-3 py-2 bg-bg-1 rounded-lg group">
+                        <span className="text-[10px] text-dim font-mono w-5 text-center">{String(i + 1).padStart(2, "0")}</span>
+                        <span className="text-sm text-accent flex-1 truncate">{track.title}</span>
+                        <span className="text-[10px] text-dim font-mono">{track.duration ? `${Math.floor(track.duration / 60)}:${(track.duration % 60).toString().padStart(2, "0")}` : ""}</span>
+                        <div className="flex gap-1 ml-1">
+                          <button onClick={() => moveSpot(i, -1)} disabled={i === 0}
+                            className="text-dim hover:text-accent disabled:opacity-20 transition-colors p-0.5">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 15l-6-6-6 6" /></svg>
+                          </button>
+                          <button onClick={() => moveSpot(i, 1)} disabled={i === spotTracks.length - 1}
+                            className="text-dim hover:text-accent disabled:opacity-20 transition-colors p-0.5">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

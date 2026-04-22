@@ -226,6 +226,13 @@ export async function toggleSpotlight(trackId: string, isSpotlight: boolean, spo
   if (error) throw error;
 }
 
+export async function reorderSpotlight(orderedIds: string[]): Promise<void> {
+  for (let i = 0; i < orderedIds.length; i++) {
+    const { error } = await supabase.from("tracks").update({ spotlight_order: i }).eq("id", orderedIds[i]);
+    if (error) throw error;
+  }
+}
+
 export async function getTrackById(id: string): Promise<Track | null> {
   const { data, error } = await supabase.from("tracks").select("*").eq("id", id).single();
   if (error) return null; return data;

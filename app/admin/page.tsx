@@ -72,6 +72,7 @@ export default function AdminPage() {
   const [showThrowaways, setShowThrowaways] = useState(true);
   const [showSpotlight, setShowSpotlight] = useState(true);
   const [showOrb, setShowOrb] = useState(true);
+  const [showRadio, setShowRadio] = useState(true);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
@@ -94,7 +95,7 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"upload" | "inbox" | "sales" | "projects" | "analytics" | "settings">("upload");
 
   const loadTracks = async () => { setLoadingTracks(true); try { setTracks(await getTracksWithPlayCounts()); } catch {} setLoadingTracks(false); };
-  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setShowTracksHome(s.show_tracks_on_homepage); setShowBeats(s.show_beats); setShowFreestyles(s.show_freestyles); setShowThrowaways(s.show_throwaways); setShowSpotlight(s.show_spotlight); setShowOrb(s.show_orb); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
+  const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setShowTracksHome(s.show_tracks_on_homepage); setShowBeats(s.show_beats); setShowFreestyles(s.show_freestyles); setShowThrowaways(s.show_throwaways); setShowSpotlight(s.show_spotlight); setShowOrb(s.show_orb); setShowRadio(s.show_radio); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
   const loadAnalytics = async () => {
     setLoadingAnalytics(true);
     try { const [total, locations, recent] = await Promise.all([getTotalPlays(), getLocationStats(), getRecentPlays(30)]); setTotalPlays(total); setCountries(locations.countries); setCities(locations.cities); setRecentPlays(recent); } catch {}
@@ -185,6 +186,7 @@ export default function AdminPage() {
         show_throwaways: showThrowaways,
         show_spotlight: showSpotlight,
         show_orb: showOrb,
+        show_radio: showRadio,
       });
       setSettingsMsg({ text: "Settings saved", type: "ok" });
     } catch (err: any) { setSettingsMsg({ text: err.message, type: "err" }); }
@@ -630,6 +632,7 @@ export default function AdminPage() {
             {([
               { state: showSpotlight, setter: setShowSpotlight, label: "Show Spotlight section", desc: "EP/playlist card at top of homepage" },
               { state: showOrb, setter: setShowOrb, label: "Show AI Orb", desc: "Ask the Vault oracle at bottom of homepage" },
+              { state: showRadio, setter: setShowRadio, label: "Enable 24/7 Radio", desc: "Show or hide the radio player on the homepage" },
             ] as { state: boolean; setter: (v: boolean) => void; label: string; desc: string }[]).map(({ state, setter, label, desc }) => (
               <div key={label} className="mb-2">
                 <button type="button" onClick={() => setter(!state)}

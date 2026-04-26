@@ -56,7 +56,7 @@ function TrackSection({ title, tracks: sectionTracks, current, isPlaying, playTr
 export default function PlayerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true, show_beats: true, show_freestyles: true, show_throwaways: true, show_spotlight: true, show_orb: true });
+  const [settings, setSettings] = useState<SiteSettings>({ id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true, show_beats: true, show_freestyles: true, show_throwaways: true, show_spotlight: true, show_orb: true, show_radio: true });
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [spotlight, setSpotlight] = useState<Track[]>([]);
   const [spotlightArt, setSpotlightArt] = useState<Record<string, string>>({});
@@ -67,7 +67,7 @@ export default function PlayerPage() {
   const [freestyles, setFreestyles] = useState<Track[]>([]);
   const [throwaways, setThrowaways] = useState<Track[]>([]);
 
-  const { tracks, setTracks, current, isPlaying, playTrack, togglePlay, radioMode, startRadio } = usePlayer();
+  const { tracks, setTracks, current, isPlaying, playTrack, togglePlay, radioMode, startRadio, stopRadio } = usePlayer();
 
   useEffect(() => {
     Promise.all([
@@ -94,7 +94,10 @@ export default function PlayerPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  return (
+  // Stop radio if admin disables it
+  useEffect(() => {
+    if (!settings.show_radio && radioMode) stopRadio();
+  }, [settings.show_radio]);
     <div className="min-h-screen flex flex-col pb-28">
       <header className="px-6 py-5 flex items-center justify-between border-b border-bg-3">
         <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -122,34 +125,36 @@ export default function PlayerPage() {
           <div className="max-w-2xl mx-auto">
 
             {/* ─── 24/7 RADIO ─── */}
-            <div className="mb-10 py-10 flex flex-col items-center justify-center text-center fade-up">
-              <p className="text-[10px] text-dim/50 font-mono uppercase tracking-[0.3em] mb-1">{settings.title}</p>
-              <p className="text-[10px] text-dim/30 font-mono tracking-[0.15em] mb-5">24/7 radio</p>
-              <button
-                onClick={() => {
-                  const allPublic = [...tracks, ...beats, ...freestyles, ...throwaways];
-                  if (allPublic.length) startRadio(allPublic);
-                }}
-                disabled={tracks.length === 0 && beats.length === 0 && freestyles.length === 0 && throwaways.length === 0}
-                className="px-6 py-2 rounded-full text-[11px] font-mono uppercase tracking-[0.2em] disabled:opacity-20 disabled:cursor-not-allowed active:scale-[0.97] focus:outline-none"
-                style={{
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  color: "rgba(255,255,255,0.6)",
-                  backgroundColor: "transparent",
-                  WebkitTapHighlightColor: "transparent",
-                  WebkitAppearance: "none",
-                  transition: "transform 0.15s ease, border-color 0.15s ease",
-                }}
-              >
-                {radioMode && isPlaying ? "playing" : "play now"}
-              </button>
-              {radioMode && (
-                <div className="flex items-center gap-1.5 mt-3 fade-up">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 radio-pulse" />
-                  <span className="text-[9px] text-red-400/60 font-mono uppercase tracking-widest">live</span>
-                </div>
-              )}
-            </div>
+            {settings.show_radio && (
+              <div className="mb-10 py-10 flex flex-col items-center justify-center text-center fade-up">
+                <p className="text-[10px] text-dim/50 font-mono uppercase tracking-[0.3em] mb-1">{settings.title}</p>
+                <p className="text-[10px] text-dim/30 font-mono tracking-[0.15em] mb-5">24/7 radio</p>
+                <button
+                  onClick={() => {
+                    const allPublic = [...tracks, ...beats, ...freestyles, ...throwaways];
+                    if (allPublic.length) startRadio(allPublic);
+                  }}
+                  disabled={tracks.length === 0 && beats.length === 0 && freestyles.length === 0 && throwaways.length === 0}
+                  className="px-6 py-2 rounded-full text-[11px] font-mono uppercase tracking-[0.2em] disabled:opacity-20 disabled:cursor-not-allowed active:scale-[0.97] focus:outline-none"
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    color: "rgba(255,255,255,0.6)",
+                    backgroundColor: "transparent",
+                    WebkitTapHighlightColor: "transparent",
+                    WebkitAppearance: "none",
+                    transition: "transform 0.15s ease, border-color 0.15s ease",
+                  }}
+                >
+                  {radioMode && isPlaying ? "playing" : "play now"}
+                </button>
+                {radioMode && (
+                  <div className="flex items-center gap-1.5 mt-3 fade-up">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 radio-pulse" />
+                    <span className="text-[9px] text-red-400/60 font-mono uppercase tracking-widest">live</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ─── SPOTLIGHT ─── */}
             {settings.show_spotlight && spotlight.length > 0 && (

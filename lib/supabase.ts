@@ -49,6 +49,7 @@ export interface SiteSettings {
   show_throwaways: boolean;
   show_spotlight: boolean;
   show_orb: boolean;
+  show_radio: boolean;
 }
 
 export interface Play {
@@ -65,13 +66,13 @@ export interface LocationStat { location: string; count: number; }
 
 export async function getSettings(): Promise<SiteSettings> {
   const { data, error } = await supabase.from("site_settings").select("*").limit(1).single();
-  if (error || !data) return { id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true, show_beats: true, show_freestyles: true, show_throwaways: true, show_spotlight: true, show_orb: true };
-  return { ...data, show_tracks_on_homepage: data.show_tracks_on_homepage ?? true, show_beats: data.show_beats ?? true, show_freestyles: data.show_freestyles ?? true, show_throwaways: data.show_throwaways ?? true, show_spotlight: data.show_spotlight ?? true, show_orb: data.show_orb ?? true };
+  if (error || !data) return { id: "", title: "THESANDALVAULT", subtitle: "ideas, drafts, and loops", logo_path: null, spotlight_title: null, spotlight_bio: null, spotlight_artwork_path: null, show_tracks_on_homepage: true, show_beats: true, show_freestyles: true, show_throwaways: true, show_spotlight: true, show_orb: true, show_radio: true };
+  return { ...data, show_tracks_on_homepage: data.show_tracks_on_homepage ?? true, show_beats: data.show_beats ?? true, show_freestyles: data.show_freestyles ?? true, show_throwaways: data.show_throwaways ?? true, show_spotlight: data.show_spotlight ?? true, show_orb: data.show_orb ?? true, show_radio: data.show_radio ?? true };
 }
 
 export async function updateSettings(
   title: string, subtitle: string,
-  toggles?: { show_tracks_on_homepage?: boolean; show_beats?: boolean; show_freestyles?: boolean; show_throwaways?: boolean; show_spotlight?: boolean; show_orb?: boolean }
+  toggles?: { show_tracks_on_homepage?: boolean; show_beats?: boolean; show_freestyles?: boolean; show_throwaways?: boolean; show_spotlight?: boolean; show_orb?: boolean; show_radio?: boolean }
 ): Promise<SiteSettings> {
   const updates: Record<string, unknown> = { title, subtitle };
   if (toggles) {
@@ -81,6 +82,7 @@ export async function updateSettings(
     if (toggles.show_throwaways !== undefined) updates.show_throwaways = toggles.show_throwaways;
     if (toggles.show_spotlight !== undefined) updates.show_spotlight = toggles.show_spotlight;
     if (toggles.show_orb !== undefined) updates.show_orb = toggles.show_orb;
+    if (toggles.show_radio !== undefined) updates.show_radio = toggles.show_radio;
   }
   const { data: existing } = await supabase.from("site_settings").select("id").limit(1).single();
   if (existing) {

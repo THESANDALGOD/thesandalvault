@@ -59,6 +59,7 @@ alter table public.site_settings add column if not exists show_freestyles boolea
 alter table public.site_settings add column if not exists show_throwaways boolean default true;
 alter table public.site_settings add column if not exists show_spotlight boolean default true;
 alter table public.site_settings add column if not exists show_orb boolean default true;
+alter table public.site_settings add column if not exists show_radio boolean default true;
 
 -- Purchases
 create table if not exists public.purchases (

@@ -100,6 +100,8 @@ export default function PlayerPage() {
   useEffect(() => {
     if (!settings.show_radio && radioMode) stopRadio();
   }, [settings.show_radio]);
+
+  return (
     <div className="min-h-screen flex flex-col pb-28">
       <header className="px-6 py-5 flex items-center justify-between border-b border-bg-3">
         <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -143,12 +145,13 @@ export default function PlayerPage() {
         {activeTab === "blog" && <BlogFeed />}
 
         {/* ─── MUSIC TAB ─── */}
-        {activeTab === "music" && (
-        loading ? (
+        {activeTab === "music" && loading && (
           <div className="flex items-center justify-center h-64"><div className="text-muted text-sm font-mono animate-pulse">Loading tracks...</div></div>
-        ) : error ? (
+        )}
+        {activeTab === "music" && !loading && error && (
           <div className="flex items-center justify-center h-64 text-center px-4"><div><p className="text-red-400 text-sm font-mono mb-2">Connection Error</p><p className="text-dim text-xs font-mono max-w-sm">{error}</p></div></div>
-        ) : (
+        )}
+        {activeTab === "music" && !loading && !error && (
           <div className="max-w-2xl mx-auto">
 
             {/* ─── 24/7 RADIO ─── */}
@@ -264,7 +267,6 @@ export default function PlayerPage() {
             )}
 
           </div>
-        )
         )}
       </main>
     </div>

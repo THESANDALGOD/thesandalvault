@@ -61,6 +61,21 @@ alter table public.site_settings add column if not exists show_spotlight boolean
 alter table public.site_settings add column if not exists show_orb boolean default true;
 alter table public.site_settings add column if not exists show_radio boolean default true;
 
+-- Posts / Blog
+create table if not exists public.posts (
+  id uuid default gen_random_uuid() primary key,
+  type text not null default 'text',
+  title text,
+  body text,
+  image_path text,
+  tag text,
+  created_at timestamp with time zone default now()
+);
+alter table public.posts enable row level security;
+create policy "Anyone can read posts" on public.posts for select using (true);
+create policy "Anyone can insert posts" on public.posts for insert with check (true);
+create policy "Anyone can delete posts" on public.posts for delete using (true);
+
 -- Purchases
 create table if not exists public.purchases (
   id uuid default gen_random_uuid() primary key,

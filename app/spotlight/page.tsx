@@ -10,6 +10,21 @@ function fmt(s: number | null): string {
   return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, "0")}`;
 }
 
+function fmtDate(s: string | null | undefined): string {
+  if (!s) return "";
+  const d = new Date(s);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function totalDuration(tracks: Track[]): string {
+  const secs = tracks.reduce((a, t) => a + (t.duration || 0), 0);
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = Math.floor(secs % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m ${s}s`;
+}
+
 function EqBars({ active }: { active: boolean }) {
   return (
     <div className="flex items-end gap-[2px] h-3 w-3">
@@ -28,12 +43,10 @@ export default function SpotlightPage() {
   const [logoSrc, setLogoSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Pricing
   const [price, setPrice] = useState("5");
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  // Leave a note
   const [noteText, setNoteText] = useState("");
   const [noteSending, setNoteSending] = useState(false);
   const [noteStatus, setNoteStatus] = useState<"idle" | "sent" | "error">("idle");
@@ -44,9 +57,7 @@ export default function SpotlightPage() {
   useEffect(() => {
     Promise.all([getSettings(), getSpotlightTracks()])
       .then(async ([s, sp]) => {
-        setSettings(s);
-        setSpotlightTracks(sp);
-        setTracks(sp);
+        setSettings(s); setSpotlightTracks(sp); setTracks(sp);
         if (s.logo_path) { try { setLogoSrc(await getLogoUrl(s.logo_path)); } catch {} }
         if (s.spotlight_artwork_path) { try { setCoverUrl(await getSignedUrl(s.spotlight_artwork_path)); } catch {} }
       })
@@ -59,31 +70,18 @@ export default function SpotlightPage() {
   }
 
   const playAll = () => {
-    if (spotlightTracks.length > 0) {
-      playTrack(spotlightTracks[0]);
-      setExpanded(true);
-    }
+    if (spotlightTracks.length > 0) { playTrack(spotlightTracks[0]); setExpanded(true); }
   };
 
   const handleCheckout = async () => {
     setCheckingOut(true); setCheckoutError(null);
     const amount = parseFloat(price || "0");
-
-    // Free download — skip Stripe
-    if (amount === 0) {
-      window.location.href = "/spotlight/success?free=true";
-      return;
-    }
-
+    if (amount === 0) { window.location.href = "/spotlight/success?free=true"; return; }
     try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: price, projectName: settings.spotlight_title || "Spotlight" }),
-      });
+      const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: price, projectName: settings.spotlight_title || "Spotlight" }) });
       const data = await res.json();
       if (data.error) { setCheckoutError(data.error); setCheckingOut(false); return; }
-      if (data.url) { window.location.href = data.url; }
+      if (data.url) window.location.href = data.url;
     } catch (err: any) { setCheckoutError(err.message || "Checkout failed"); setCheckingOut(false); }
   };
 
@@ -94,161 +92,229 @@ export default function SpotlightPage() {
     setNoteSending(true); setNoteStatus("idle");
     try {
       await sendMessage(noteText.trim().slice(0, 250));
-      lastNoteTime.current = Date.now();
-      setNoteText(""); setNoteStatus("sent");
+      lastNoteTime.current = Date.now(); setNoteText(""); setNoteStatus("sent");
       setTimeout(() => setNoteStatus("idle"), 2500);
     } catch { setNoteStatus("error"); setTimeout(() => setNoteStatus("idle"), 2000); }
     setNoteSending(false);
   };
 
+  const TrackRow = ({ track, index }: { track: Track; index: number }) => {
+    const isCurrent = current?.id === track.id;
+    return (
+      <button
+        onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); } }}
+        className={`w-full flex items-center px-3 py-2.5 rounded-md transition-all duration-150 text-left group
+          ${isCurrent ? "bg-white/[0.07] text-white" : "hover:bg-white/[0.04] text-accent/60 hover:text-accent"}`}
+      >
+        {/* Number / EQ */}
+        <div className="w-8 flex-shrink-0 flex justify-center">
+          {isCurrent && isPlaying
+            ? <EqBars active />
+            : <span className={`text-xs font-mono ${isCurrent ? "text-white" : "text-dim group-hover:text-muted"}`}>{index + 1}</span>
+          }
+        </div>
+        {/* Title */}
+        <span className={`flex-1 text-sm truncate min-w-0 ${isCurrent ? "font-medium text-white" : ""}`}>{track.title}</span>
+        {/* Date — desktop only */}
+        <span className="hidden lg:block text-xs text-dim font-mono w-14 text-right flex-shrink-0">{fmtDate(track.created_at)}</span>
+        {/* Duration */}
+        <span className="text-xs text-dim font-mono w-12 text-right flex-shrink-0 ml-2">{fmt(track.duration)}</span>
+      </button>
+    );
+  };
+
   return (
-    <div className="min-h-screen flex flex-col pb-28">
-      <header className="px-6 py-5 flex items-center justify-between border-b border-bg-3">
-        <Link href="/" className="flex items-center gap-3 active:scale-[0.97] active:opacity-80 transition-all">
-          {logoSrc ? <img src={logoSrc} alt="" className="w-8 h-8 rounded-full object-cover" /> : (
-            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center"><span className="text-black text-xs font-bold">{settings.title.charAt(0)}</span></div>
-          )}
-          <div>
-            <h1 className="text-sm font-semibold tracking-wide uppercase">{settings.title}</h1>
-            <p className="text-[10px] text-muted font-mono tracking-widest lowercase">{settings.subtitle}</p>
-          </div>
+    <div className="min-h-screen flex flex-col pb-28" style={{ background: "#0a0a0a" }}>
+
+      {/* ─── HEADER ─── */}
+      <header className="flex items-center justify-between px-4 lg:px-6 py-4 flex-shrink-0">
+        <Link href="/"
+          className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:bg-white/10 active:bg-white/20"
+          style={{ WebkitTapHighlightColor: "transparent" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-accent/70"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
         </Link>
-        <Link href="/" className="text-[10px] text-dim font-mono hover:text-accent transition-colors uppercase tracking-wider">← Back</Link>
+        <div className="flex items-center gap-1">
+          {logoSrc && <img src={logoSrc} alt="" className="w-6 h-6 rounded-full object-cover opacity-60" />}
+          <span className="text-[10px] text-dim font-mono uppercase tracking-widest hidden sm:block">{settings.title}</span>
+        </div>
+        <div className="w-9" /> {/* balance */}
       </header>
 
-      <main className="flex-1 px-4 py-6">
-        <div className="max-w-2xl mx-auto">
-          {/* Playlist header */}
-          <div className="flex flex-col sm:flex-row gap-6 mb-8 items-center sm:items-start">
-            <div className="flex-shrink-0">
-              {coverUrl ? (
-                <img src={coverUrl} alt="" className="w-48 h-48 sm:w-56 sm:h-56 rounded-xl object-cover shadow-2xl" />
-              ) : (
-                <div className="w-48 h-48 sm:w-56 sm:h-56 rounded-xl bg-bg-2 flex items-center justify-center" style={{ border: "1px solid #222" }}>
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-dim"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col justify-end text-center sm:text-left flex-1 min-w-0">
-              <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-1">THESANDALGOD</p>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-2">{settings.spotlight_title || "Spotlight"}</h2>
-              {settings.spotlight_bio && (
-                <p className="text-sm text-muted/60 mb-3 leading-relaxed">{settings.spotlight_bio}</p>
-              )}
-              <div className="flex items-center gap-4 justify-center sm:justify-start">
-                <button onClick={playAll}
-                  className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-                </button>
-                <span className="text-[11px] text-dim font-mono">{spotlightTracks.length} track{spotlightTracks.length !== 1 ? "s" : ""}</span>
-              </div>
-            </div>
+      {/* ─── MOBILE LAYOUT (< lg) ─── */}
+      <div className="lg:hidden flex-1 px-4 py-2">
+        <div className="flex flex-col items-center gap-5 mb-6">
+          {coverUrl
+            ? <img src={coverUrl} alt="" className="w-52 h-52 rounded-xl object-cover shadow-2xl" />
+            : <div className="w-52 h-52 rounded-xl bg-bg-2 flex items-center justify-center" style={{ border: "1px solid #1a1a1a" }}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-dim"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg></div>
+          }
+          <div className="text-center">
+            <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-1">THESANDALGOD</p>
+            <h2 className="text-2xl font-bold mb-1">{settings.spotlight_title || "Spotlight"}</h2>
+            <p className="text-xs text-dim font-mono">{spotlightTracks.length} tracks · {totalDuration(spotlightTracks)}</p>
+            {settings.spotlight_bio && <p className="text-sm text-muted/50 mt-2 leading-relaxed">{settings.spotlight_bio}</p>}
           </div>
+          <button onClick={playAll} className="flex items-center gap-2 px-6 py-2.5 bg-white text-black text-sm font-semibold rounded-full hover:bg-accent transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+            Play
+          </button>
+        </div>
 
-          {/* Track list */}
-          {spotlightTracks.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted text-sm">No tracks in spotlight yet</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <div className="grid grid-cols-[1fr_50px] px-3 py-2 text-[10px] text-dim font-mono uppercase tracking-widest">
-                <span>Title</span><span className="text-right">Dur</span>
-              </div>
-              {spotlightTracks.map((track, i) => {
-                const isCurrent = current?.id === track.id;
-                return (
-                  <button key={track.id} onClick={() => { if (isCurrent) { togglePlay(); } else { playTrack(track); } }}
-                    className={`w-full grid grid-cols-[1fr_50px] items-center px-3 py-3 rounded-lg transition-all duration-200 text-left group fade-up ${isCurrent ? "bg-bg-3 text-white" : "hover:bg-bg-2 text-accent/70 hover:text-accent"}`}
-                    style={{ animationDelay: `${i * 30}ms` }}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-5 flex-shrink-0 flex justify-center">
-                        {isCurrent && isPlaying ? <EqBars active /> : <span className="text-xs text-dim group-hover:text-muted font-mono">{String(i + 1).padStart(2, "0")}</span>}
-                      </div>
-                      <span className={`text-sm truncate ${isCurrent ? "font-semibold" : "font-medium"}`}>{track.title}</span>
-                    </div>
-                    <span className="text-xs text-dim font-mono text-right">{fmt(track.duration)}</span>
-                  </button>
-                );
-              })}
-            </div>
+        {/* Mobile tracklist */}
+        <div className="space-y-0.5">
+          {spotlightTracks.map((track, i) => <TrackRow key={track.id} track={track} index={i} />)}
+        </div>
+
+        {/* Mobile: name your price + note */}
+        <MobileExtras spotlightTracks={spotlightTracks} price={price} setPrice={setPrice} checkingOut={checkingOut} checkoutError={checkoutError} handleCheckout={handleCheckout} noteText={noteText} setNoteText={setNoteText} noteSending={noteSending} noteStatus={noteStatus} handleSendNote={handleSendNote} />
+      </div>
+
+      {/* ─── DESKTOP LAYOUT (lg+) ─── */}
+      <div className="hidden lg:flex flex-1 min-h-0 gap-0">
+
+        {/* LEFT — sticky cover panel */}
+        <div className="w-[340px] xl:w-[380px] flex-shrink-0 flex flex-col items-start px-8 py-4 sticky top-0 self-start">
+          {coverUrl
+            ? <img src={coverUrl} alt="" className="w-full aspect-square rounded-xl object-cover shadow-2xl mb-6" />
+            : <div className="w-full aspect-square rounded-xl bg-bg-2 flex items-center justify-center mb-6" style={{ border: "1px solid #1a1a1a" }}><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-dim"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg></div>
+          }
+
+          <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-1">THESANDALGOD</p>
+          <h2 className="text-2xl xl:text-3xl font-bold mb-1 leading-tight">{settings.spotlight_title || "Spotlight"}</h2>
+          <p className="text-xs text-dim font-mono mb-3">
+            thesandalgod · {spotlightTracks.length} track{spotlightTracks.length !== 1 ? "s" : ""} · {totalDuration(spotlightTracks)}
+          </p>
+          {settings.spotlight_bio && (
+            <p className="text-sm text-muted/50 mb-5 leading-relaxed">{settings.spotlight_bio}</p>
           )}
 
-          {/* ─── NAME YOUR PRICE ─── */}
+          {/* Desktop controls */}
+          <div className="flex items-center gap-3 mb-6">
+            <button onClick={playAll}
+              className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+            </button>
+          </div>
+
+          {/* Desktop: support block */}
           {spotlightTracks.length > 0 && (
-            <div className="mt-10 mb-6">
-              <div className="rounded-xl p-6 text-center" style={{ background: "#0a0a0a" }}>
-                <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-3">Support the artist</p>
-                <h3 className="text-lg font-semibold mb-1">Name your price</h3>
-                <p className="text-[11px] text-muted/50 mb-6">Unlock downloads for all tracks, lyrics & artwork</p>
-
-                <div className="flex items-center justify-center gap-3 mb-5">
-                  <span className="text-xl font-semibold text-muted">$</span>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-20 px-3 py-2.5 bg-bg-2 border border-bg-4 rounded-lg text-xl text-center text-accent font-semibold focus:outline-none focus:border-muted"
-                  />
-                  <span className="text-xs text-dim font-mono">USD</span>
-                </div>
-
-                <div className="flex justify-center gap-2 mb-5">
-                  {["0", "3", "5", "10", "20"].map((amt) => (
+            <div className="w-full rounded-xl p-4 mt-2" style={{ background: "#111" }}>
+              <p className="text-[9px] text-dim font-mono uppercase tracking-widest mb-2">Support the artist</p>
+              <p className="text-sm font-semibold mb-0.5">Name your price</p>
+              <p className="text-[10px] text-muted/50 mb-3">Unlock downloads for all tracks</p>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm font-semibold text-muted">$</span>
+                <input type="number" min="1" step="1" value={price} onChange={(e) => setPrice(e.target.value)}
+                  className="w-16 px-2 py-1.5 bg-bg-2 border border-bg-4 rounded-lg text-base text-center text-accent font-semibold focus:outline-none focus:border-muted" />
+                <div className="flex gap-1 flex-wrap">
+                  {["0", "3", "5", "10"].map((amt) => (
                     <button key={amt} onClick={() => setPrice(amt)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${price === amt ? "bg-white text-black" : "bg-bg-3 text-muted hover:text-accent"}`}>
+                      className={`px-2 py-1 rounded text-[10px] font-mono transition-all ${price === amt ? "bg-white text-black" : "bg-bg-3 text-muted hover:text-accent"}`}>
                       {amt === "0" ? "Free" : `$${amt}`}
                     </button>
                   ))}
                 </div>
-
-                <button
-                  onClick={handleCheckout}
-                  disabled={checkingOut}
-                  className="w-full max-w-xs mx-auto py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  {checkingOut ? "Redirecting..." : parseFloat(price || "0") === 0 ? "Download for free" : `Unlock for $${parseFloat(price || "0").toFixed(2)}`}
-                </button>
-
-                {checkoutError && (
-                  <p className="text-xs text-red-400 font-mono mt-3">{checkoutError}</p>
-                )}
-
-                <p className="text-[9px] text-dim/40 font-mono mt-4">Powered by Stripe · Secure payment</p>
               </div>
+              <button onClick={handleCheckout} disabled={checkingOut}
+                className="w-full py-2 bg-white text-black text-xs font-semibold rounded-lg hover:bg-accent disabled:opacity-40 transition-all">
+                {checkingOut ? "Redirecting..." : parseFloat(price || "0") === 0 ? "Download free" : `Unlock $${parseFloat(price || "0").toFixed(2)}`}
+              </button>
+              {checkoutError && <p className="text-[10px] text-red-400 font-mono mt-2">{checkoutError}</p>}
             </div>
           )}
-          {/* ─── LEAVE A NOTE ─── */}
-          <div className="mt-10 mb-8 max-w-md mx-auto">
-            <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-3">leave a note</p>
-            <div className="relative">
-              <textarea
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value.slice(0, 250))}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendNote(); } }}
-                placeholder="..."
-                rows={2}
-                className="w-full px-4 py-3 bg-transparent text-sm text-accent/70 placeholder:text-dim/30 focus:outline-none resize-none font-mono"
-                style={{ borderBottom: "1px solid #1a1a1a" }}
-                disabled={noteSending}
-              />
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[9px] font-mono text-dim/30">{noteText.length}/250</span>
-                <div className="flex items-center gap-3">
-                  {noteStatus === "sent" && <span className="text-[10px] font-mono text-green-400/60 fade-up">sent</span>}
-                  {noteStatus === "error" && <span className="text-[10px] font-mono text-red-400/60 fade-up">wait a moment</span>}
-                  <button onClick={handleSendNote} disabled={!noteText.trim() || noteSending}
-                    className="text-[10px] font-mono text-dim hover:text-accent transition-colors disabled:text-dim/20 disabled:cursor-default uppercase tracking-widest">
-                    {noteSending ? "..." : "send"}
-                  </button>
-                </div>
+
+          {/* Desktop: leave a note */}
+          <div className="w-full mt-5">
+            <p className="text-[9px] text-dim font-mono uppercase tracking-widest mb-2">leave a note</p>
+            <textarea value={noteText} onChange={(e) => setNoteText(e.target.value.slice(0, 250))}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendNote(); } }}
+              placeholder="..." rows={2}
+              className="w-full px-3 py-2 bg-transparent text-sm text-accent/70 placeholder:text-dim/30 focus:outline-none resize-none font-mono"
+              style={{ borderBottom: "1px solid #1a1a1a" }} disabled={noteSending} />
+            <div className="flex items-center justify-between mt-1.5">
+              <span className="text-[9px] font-mono text-dim/30">{noteText.length}/250</span>
+              <div className="flex items-center gap-2">
+                {noteStatus === "sent" && <span className="text-[9px] font-mono text-green-400/60">sent</span>}
+                {noteStatus === "error" && <span className="text-[9px] font-mono text-red-400/60">wait a moment</span>}
+                <button onClick={handleSendNote} disabled={!noteText.trim() || noteSending}
+                  className="text-[9px] font-mono text-dim hover:text-accent transition-colors disabled:text-dim/20 uppercase tracking-widest">
+                  {noteSending ? "..." : "send"}
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </main>
+
+        {/* RIGHT — scrollable tracklist */}
+        <div className="flex-1 min-w-0 overflow-y-auto px-6 py-4">
+          {/* Column headers */}
+          <div className="flex items-center px-3 pb-2 mb-1" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="w-8 flex-shrink-0" />
+            <span className="flex-1 text-[10px] text-dim font-mono uppercase tracking-widest">Title</span>
+            <span className="hidden lg:block text-[10px] text-dim font-mono uppercase tracking-widest w-14 text-right flex-shrink-0">Date</span>
+            <span className="text-[10px] text-dim font-mono uppercase tracking-widest w-12 text-right flex-shrink-0 ml-2">Dur</span>
+          </div>
+
+          <div className="space-y-0.5 mt-2">
+            {spotlightTracks.length === 0
+              ? <p className="text-muted text-sm text-center py-12">No tracks in spotlight yet</p>
+              : spotlightTracks.map((track, i) => <TrackRow key={track.id} track={track} index={i} />)
+            }
+          </div>
+        </div>
+      </div>
     </div>
+  );
+}
+
+// Mobile-only extras component to keep the main render clean
+function MobileExtras({ spotlightTracks, price, setPrice, checkingOut, checkoutError, handleCheckout, noteText, setNoteText, noteSending, noteStatus, handleSendNote }: any) {
+  return (
+    <>
+      {spotlightTracks.length > 0 && (
+        <div className="mt-8 mb-6 rounded-xl p-5" style={{ background: "#111" }}>
+          <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-2 text-center">Support the artist</p>
+          <h3 className="text-base font-semibold mb-0.5 text-center">Name your price</h3>
+          <p className="text-[10px] text-muted/50 mb-4 text-center">Unlock downloads for all tracks</p>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <span className="text-lg font-semibold text-muted">$</span>
+            <input type="number" min="1" step="1" value={price} onChange={(e) => setPrice(e.target.value)}
+              className="w-18 px-3 py-2 bg-bg-2 border border-bg-4 rounded-lg text-xl text-center text-accent font-semibold focus:outline-none focus:border-muted" />
+            <span className="text-xs text-dim font-mono">USD</span>
+          </div>
+          <div className="flex justify-center gap-2 mb-4">
+            {["0", "3", "5", "10", "20"].map((amt) => (
+              <button key={amt} onClick={() => setPrice(amt)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${price === amt ? "bg-white text-black" : "bg-bg-3 text-muted hover:text-accent"}`}>
+                {amt === "0" ? "Free" : `$${amt}`}
+              </button>
+            ))}
+          </div>
+          <button onClick={handleCheckout} disabled={checkingOut}
+            className="w-full py-3 bg-white text-black text-sm font-semibold rounded-lg hover:bg-accent disabled:opacity-40 transition-all">
+            {checkingOut ? "Redirecting..." : parseFloat(price || "0") === 0 ? "Download for free" : `Unlock for $${parseFloat(price || "0").toFixed(2)}`}
+          </button>
+          {checkoutError && <p className="text-xs text-red-400 font-mono mt-2 text-center">{checkoutError}</p>}
+        </div>
+      )}
+      <div className="mt-8 mb-8 max-w-md mx-auto">
+        <p className="text-[10px] text-dim font-mono uppercase tracking-widest mb-3">leave a note</p>
+        <textarea value={noteText} onChange={(e) => setNoteText(e.target.value.slice(0, 250))}
+          onKeyDown={(e: any) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendNote(); } }}
+          placeholder="..." rows={2}
+          className="w-full px-4 py-3 bg-transparent text-sm text-accent/70 placeholder:text-dim/30 focus:outline-none resize-none font-mono"
+          style={{ borderBottom: "1px solid #1a1a1a" }} disabled={noteSending} />
+        <div className="flex items-center justify-between mt-2">
+          <span className="text-[9px] font-mono text-dim/30">{noteText.length}/250</span>
+          <div className="flex items-center gap-3">
+            {noteStatus === "sent" && <span className="text-[10px] font-mono text-green-400/60">sent</span>}
+            {noteStatus === "error" && <span className="text-[10px] font-mono text-red-400/60">wait a moment</span>}
+            <button onClick={handleSendNote} disabled={!noteText.trim() || noteSending}
+              className="text-[10px] font-mono text-dim hover:text-accent transition-colors disabled:text-dim/20 uppercase tracking-widest">
+              {noteSending ? "..." : "send"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

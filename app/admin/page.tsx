@@ -6,7 +6,8 @@ import {
   uploadFile, getTracksWithPlayCounts, deleteTrackFull, getSettings, updateSettings, uploadLogo, updateTrackMedia, deleteTrackMedia, updateTrackPrivacy, reorderTracks, toggleSpotlight, updateSpotlightSettings, reorderSpotlight,
   getTotalPlays, getLocationStats, getRecentPlays, getMessages, deleteMessage, getPurchases,
   getProjects, createProject, updateProject, deleteProject, assignTrackToProject, updateTrackCategory,
-  type Track, type LocationStat, type Play, type Message, type Purchase, type Project,
+  getPosts, createPost, deletePost,
+  type Track, type LocationStat, type Play, type Message, type Purchase, type Project, type Post,
 } from "@/lib/supabase";
 
 const ADMIN_PW = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "sandalgod2026";
@@ -64,6 +65,18 @@ export default function AdminPage() {
   const [savingProject, setSavingProject] = useState(false);
   const [projMsg, setProjMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
 
+  // Posts / Blog
+  const [postsList, setPostsList] = useState<Post[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [postType, setPostType] = useState<"text" | "image" | "mixed">("text");
+  const [postTitle, setPostTitle] = useState("");
+  const [postBody, setPostBody] = useState("");
+  const [postTag, setPostTag] = useState("");
+  const [postImage, setPostImage] = useState<File | null>(null);
+  const [savingPost, setSavingPost] = useState(false);
+  const [postMsg, setPostMsg] = useState<{ text: string; type: "ok" | "err" } | null>(null);
+  const postImageRef = useRef<HTMLInputElement>(null);
+
   const [siteTitle, setSiteTitle] = useState("THESANDALVAULT");
   const [siteSub, setSiteSub] = useState("ideas, drafts, and loops");
   const [showTracksHome, setShowTracksHome] = useState(true);
@@ -92,7 +105,7 @@ export default function AdminPage() {
   const [recentPlays, setRecentPlays] = useState<(Play & { track_title?: string })[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
-  const [tab, setTab] = useState<"upload" | "inbox" | "sales" | "projects" | "analytics" | "settings">("upload");
+  const [tab, setTab] = useState<"upload" | "inbox" | "sales" | "projects" | "posts" | "analytics" | "settings">("upload");
 
   const loadTracks = async () => { setLoadingTracks(true); try { setTracks(await getTracksWithPlayCounts()); } catch {} setLoadingTracks(false); };
   const loadSettings = async () => { try { const s = await getSettings(); setSiteTitle(s.title); setSiteSub(s.subtitle); setShowTracksHome(s.show_tracks_on_homepage); setShowBeats(s.show_beats); setShowFreestyles(s.show_freestyles); setShowThrowaways(s.show_throwaways); setShowSpotlight(s.show_spotlight); setShowOrb(s.show_orb); setShowRadio(s.show_radio); setSpotTitle(s.spotlight_title || ""); setSpotBio(s.spotlight_bio || ""); } catch {} };
@@ -104,9 +117,10 @@ export default function AdminPage() {
   const loadMessages = async () => { setLoadingMessages(true); try { setMessages(await getMessages()); } catch {} setLoadingMessages(false); };
   const loadPurchases = async () => { setLoadingPurchases(true); try { setPurchases(await getPurchases()); } catch {} setLoadingPurchases(false); };
   const loadProjects = async () => { setLoadingProjects(true); try { setProjectsList(await getProjects()); } catch {} setLoadingProjects(false); };
+  const loadPosts = async () => { setLoadingPosts(true); try { setPostsList(await getPosts()); } catch {} setLoadingPosts(false); };
 
-  useEffect(() => { if (authed) { loadTracks(); loadSettings(); loadAnalytics(); loadMessages(); loadPurchases(); loadProjects(); } }, [authed]);
-  useEffect(() => { if (authed && tab === "analytics") loadAnalytics(); if (authed && tab === "inbox") loadMessages(); if (authed && tab === "sales") loadPurchases(); if (authed && tab === "projects") { loadProjects(); loadTracks(); } }, [tab]);
+  useEffect(() => { if (authed) { loadTracks(); loadSettings(); loadAnalytics(); loadMessages(); loadPurchases(); loadProjects(); loadPosts(); } }, [authed]);
+  useEffect(() => { if (authed && tab === "analytics") loadAnalytics(); if (authed && tab === "inbox") loadMessages(); if (authed && tab === "sales") loadPurchases(); if (authed && tab === "projects") { loadProjects(); loadTracks(); } if (authed && tab === "posts") loadPosts(); }, [tab]);
 
   const handleLogin = (e: React.FormEvent) => { e.preventDefault(); if (pw === ADMIN_PW) { setAuthed(true); } else { setPwError(true); } };
 
@@ -231,7 +245,7 @@ export default function AdminPage() {
       </header>
 
       <div className="flex border-b border-bg-3 overflow-x-auto">
-        {(["upload", "inbox", "sales", "projects", "analytics", "settings"] as const).map((t) => (
+        {(["upload", "inbox", "sales", "projects", "posts", "analytics", "settings"] as const).map((t) => (
           <button key={t} onClick={() => { setTab(t); setMsg(null); }}
             className={`flex-1 py-3 text-[10px] font-mono uppercase tracking-widest transition-all whitespace-nowrap px-2 ${tab === t ? "text-accent border-b border-accent" : "text-dim border-b border-transparent"}`}>{t}</button>
         ))}
@@ -585,6 +599,111 @@ export default function AdminPage() {
                           );
                         })}
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ POSTS / BLOG ═══ */}
+        {tab === "posts" && (
+          <div className="space-y-6">
+
+            {/* Create post form */}
+            <div className="bg-bg-2 rounded-lg p-4 space-y-3">
+              <h3 className="text-[10px] text-muted font-mono uppercase tracking-widest">New Post</h3>
+
+              {/* Post type */}
+              <div className="flex gap-2">
+                {(["text", "image", "mixed"] as const).map((t) => (
+                  <button key={t} type="button" onClick={() => setPostType(t)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-all ${postType === t ? "bg-white text-black" : "bg-bg-3 text-muted hover:text-accent"}`}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {/* Title */}
+              <input type="text" value={postTitle} onChange={(e) => setPostTitle(e.target.value)} placeholder="Title"
+                className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted" />
+
+              {/* Body */}
+              {(postType === "text" || postType === "mixed") && (
+                <textarea value={postBody} onChange={(e) => setPostBody(e.target.value)} placeholder="Write something..." rows={5}
+                  className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-sm text-accent placeholder:text-dim focus:outline-none resize-y font-mono" />
+              )}
+
+              {/* Image */}
+              {(postType === "image" || postType === "mixed") && (
+                <input ref={postImageRef} type="file" accept="image/*" onChange={(e) => setPostImage(e.target.files?.[0] || null)}
+                  className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-xs text-accent file:mr-3 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-mono file:bg-bg-4 file:text-accent cursor-pointer focus:outline-none" />
+              )}
+
+              {/* Tag */}
+              <div>
+                <input type="text" value={postTag} onChange={(e) => setPostTag(e.target.value)} placeholder="Tag / mood  (music, life, thoughts, release, random…)"
+                  className="w-full px-3 py-2 bg-bg-0 border border-bg-4 rounded text-sm text-accent placeholder:text-dim focus:outline-none focus:border-muted" />
+                <div className="flex gap-1.5 mt-2 flex-wrap">
+                  {["music", "life", "thoughts", "release", "random"].map((t) => (
+                    <button key={t} type="button" onClick={() => setPostTag(t)}
+                      className={`px-2 py-0.5 rounded text-[9px] font-mono transition-all ${postTag === t ? "bg-white text-black" : "bg-bg-3 text-dim hover:text-accent"}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  const needsBody = postType === "text" || postType === "mixed";
+                  const needsImg  = postType === "image" || postType === "mixed";
+                  if (needsBody && !postBody.trim() && !postTitle.trim()) { setPostMsg({ text: "Add a title or body", type: "err" }); return; }
+                  if (needsImg && !postImage) { setPostMsg({ text: "Select an image", type: "err" }); return; }
+                  setSavingPost(true); setPostMsg(null);
+                  try {
+                    await createPost(postType, postTitle || null, postBody || null, postTag || null, postImage);
+                    setPostTitle(""); setPostBody(""); setPostTag(""); setPostImage(null);
+                    if (postImageRef.current) postImageRef.current.value = "";
+                    setPostMsg({ text: "Posted!", type: "ok" }); loadPosts();
+                  } catch (err: any) { setPostMsg({ text: err.message, type: "err" }); }
+                  setSavingPost(false);
+                }}
+                disabled={savingPost}
+                className="w-full py-2 bg-white text-black text-xs font-semibold rounded hover:bg-accent disabled:opacity-40 transition-all"
+              >{savingPost ? "Posting..." : "Publish Post"}</button>
+              {postMsg && <p className={`text-xs font-mono ${postMsg.type === "err" ? "text-red-400" : "text-green-400"}`}>{postMsg.text}</p>}
+            </div>
+
+            {/* Post list */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[10px] text-muted font-mono uppercase tracking-widest">{postsList.length} post{postsList.length !== 1 ? "s" : ""}</h3>
+                <button onClick={loadPosts} className="text-[10px] text-dim font-mono hover:text-accent uppercase tracking-wider">Refresh</button>
+              </div>
+              {loadingPosts ? (
+                <p className="text-sm text-muted text-center py-8 font-mono animate-pulse">Loading...</p>
+              ) : postsList.length === 0 ? (
+                <p className="text-sm text-dim text-center py-8">No posts yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {postsList.map((post) => (
+                    <div key={post.id} className="flex items-center gap-3 bg-bg-1 rounded-lg px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[9px] text-dim font-mono uppercase bg-bg-3 px-1.5 py-0.5 rounded">{post.type}</span>
+                          {post.tag && <span className="text-[9px] text-dim font-mono">{post.tag}</span>}
+                        </div>
+                        <p className="text-sm text-accent truncate">{post.title || post.body?.slice(0, 60) || "(image post)"}</p>
+                        <p className="text-[9px] text-dim font-mono mt-0.5">{new Date(post.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <button onClick={async () => {
+                        if (!confirm("Delete this post?")) return;
+                        try { await deletePost(post.id); loadPosts(); } catch {}
+                      }} className="text-[10px] text-red-400/50 font-mono hover:text-red-400 transition-colors flex-shrink-0">
+                        Delete
+                      </button>
                     </div>
                   ))}
                 </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getPublicTracks, getSpotlightTracks, getSignedUrl, getSettings, getLogoUrl, getProjects, getTracksByCategory, type Track, type SiteSettings, type Project } from "@/lib/supabase";
 import { usePlayer } from "@/lib/player-context";
 import VaultOrb from "@/components/VaultOrb";
+import BlogFeed from "@/components/BlogFeed";
 
 function fmt(s: number | null): string {
   if (!s || s <= 0) return "0:00";
@@ -68,6 +69,7 @@ export default function PlayerPage() {
   const [throwaways, setThrowaways] = useState<Track[]>([]);
 
   const { tracks, setTracks, current, isPlaying, playTrack, togglePlay, radioMode, startRadio, stopRadio } = usePlayer();
+  const [activeTab, setActiveTab] = useState<"music" | "blog">("music");
 
   useEffect(() => {
     Promise.all([
@@ -117,7 +119,32 @@ export default function PlayerPage() {
       </header>
 
       <main className="flex-1 overflow-y-auto px-4 py-4">
-        {loading ? (
+        {/* ─── MUSIC | BLOG TAB SWITCHER ─── */}
+        <div className="flex items-center justify-center gap-8 mb-6">
+          {(["music", "blog"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="relative text-[11px] font-mono uppercase tracking-[0.25em] pb-2 transition-colors"
+              style={{
+                color: activeTab === tab ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.2)",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              {tab}
+              {activeTab === tab && (
+                <span className="absolute bottom-0 left-0 w-full h-[1px] bg-white/40 fade-up" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* ─── BLOG TAB ─── */}
+        {activeTab === "blog" && <BlogFeed />}
+
+        {/* ─── MUSIC TAB ─── */}
+        {activeTab === "music" && (
+        loading ? (
           <div className="flex items-center justify-center h-64"><div className="text-muted text-sm font-mono animate-pulse">Loading tracks...</div></div>
         ) : error ? (
           <div className="flex items-center justify-center h-64 text-center px-4"><div><p className="text-red-400 text-sm font-mono mb-2">Connection Error</p><p className="text-dim text-xs font-mono max-w-sm">{error}</p></div></div>
@@ -237,6 +264,7 @@ export default function PlayerPage() {
             )}
 
           </div>
+        )
         )}
       </main>
     </div>

@@ -457,3 +457,41 @@ export async function deleteMessage(id: string): Promise<void> {
   const { error } = await supabase.from("messages").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ─── Blog Posts ───
+
+export interface Post {
+  id: string;
+  type: "text" | "image" | "mixed";
+  title: string | null;
+  body: string | null;
+  image_path: string | null;
+  tag: string | null;
+  created_at: string;
+}
+
+export async function getPosts(): Promise<Post[]> {
+  const { data, error } = await supabase.from("posts").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createPost(
+  type: Post["type"], title: string | null, body: string | null,
+  tag: string | null, imageFile?: File | null
+): Promise<Post> {
+  let image_path: string | null = null;
+  if (imageFile) {
+    image_path = `post-${Date.now()}.${imageFile.name.split(".").pop() || "jpg"}`;
+    const { error } = await supabase.storage.from("tracks").upload(image_path, imageFile, { contentType: imageFile.type, upsert: false });
+    if (error) throw error;
+  }
+  const { data, error } = await supabase.from("posts").insert({ type, title: title || null, body: body || null, image_path, tag: tag || null }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deletePost(id: string): Promise<void> {
+  const { error } = await supabase.from("posts").delete().eq("id", id);
+  if (error) throw error;
+}
